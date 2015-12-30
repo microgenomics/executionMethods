@@ -480,16 +480,6 @@ if [ $((statusband)) -ge 2 ]; then
 		exit
 	fi
 
-	if [[ "$ABSENT" =~ "yes" ]] ; then
-		if [ "$tipermanent" == ""  ]; then
-			echo "ABSENT=yes, but you don't especify the tax id of your permament genome, it's a requisite to apply perdonazo method"
-			exit
-		else
-			curl -s "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id=$tipermanent" > tmp.xml
-			FAMILYPERMANENT=`awk 'BEGIN{FS="[<|>]";prev=""}{if($2=="ScientificName"){prev=$3}if($3=="family"){printf "%s,",prev}}' tmp.xml` #family corresponding to fasta permament
-			rm tmp.xml
-		fi
-	fi
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
 			echo "METAPHLAN is specify in the config file, but you must provide a database and pkl file in the command line"
