@@ -10,16 +10,14 @@ executionMethods Module is the second module from SEPA (Simulation, Execution, P
 * Bash version 4 (comes with Linux and MacOSX)
 
 ##Usage
-executeMethods can be executed in two cases, one if this module is executed by previous SEPA module (Simulation module), or two, using local flag:
 
-	bash executionMethods.bash --cfile [config file] --rfile [readsfile] -[dboption] [databases] --local
+	bash executionMethods.bash --cfile [config file] --rfile [readsfile] -[dboption] [databases]
 	
 Where:
 	
 * --cfile: configuration file (see below the format)
 * --rfile: reads file, if you have paired end reads use: --rfile readfile1,readfile2.
 * --dboption: is the flag of some database and must be specific for the software that you use. See below for the databases flag option.
-* --local: this flag is to make all works in your local folder, if you use this module separately from SEPA modules, use this flag.
 
 [dboption]:
 
@@ -58,11 +56,11 @@ This file contain several parameters to steer the script (most of them just serv
 
 ##Examples
 
-	bash executionMethods.bash --cfile config.conf --rfile reads.1.fa,reads.2.fa --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B --local
+	bash executionMethods.bash --cfile config.conf --rfile reads.1.fa,reads.2.fa --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B
 
 here we choose --dbPS flag, so in your config file PATHOSCOPE must be specify in METHODS. Also, if you want to filter the reads, pathoscope provide a function to do, so, you have to add the --PSfilterdb flag and we make the rest :D.
 
-	bash executionMethods.bash --cfile config.conf --rfile singlereads.fa --dbM2 /Users/castrolab01/Desktop/metaphlan2/makingDBmarkers/indexedbowtie2/mpa_v20_m200 --local --dbmarker /Users/castrolab01/Desktop/metaphlan2/db_v20/mpa_v20_m200.pkl
+	bash executionMethods.bash --cfile config.conf --rfile singlereads.fa --dbM2 /Users/castrolab01/Desktop/metaphlan2/makingDBmarkers/indexedbowtie2/mpa_v20_m200 --dbmarker /Users/castrolab01/Desktop/metaphlan2/db_v20/mpa_v20_m200.pkl
 
 in this case --dbM2 refers to metaphlan database and it is provided in full path as --dbmarker (remember that), both flags are necesary if you specify METAPHLAN in METHODS in the config file.
 
@@ -70,7 +68,7 @@ if you have a lot of reads, you can execute executeMethods multiple times in ind
 
 	for reads in `cat read_list.txt`
 	do
-		bash executionMethods.bash --cfile config.conf --rfile $reads --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B --dbM2 /Users/castrolab01/Desktop/metaphlan2/makingDBmarkers/indexedbowtie2/dbBmarkers --dbmarker /Users/castrolab01/Desktop/metaphlan2/test/dbBmarkers.pkl --local &
+		bash executionMethods.bash --cfile config.conf --rfile $reads --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B --dbM2 /Users/castrolab01/Desktop/metaphlan2/makingDBmarkers/indexedbowtie2/dbBmarkers --dbmarker /Users/castrolab01/Desktop/metaphlan2/test/dbBmarkers.pkl &
 	done
 	
 here we executed the script on two softwares (pathoscope and metaphlan), and every loop will execute the software on the input read ($reads) taken from a list of reads.
@@ -90,7 +88,7 @@ executionMethods just move the files that are made by the softwares, executionMe
 	
 		for reads in `cat read_list.txt`
 		do
-			bash executionMethods.bash --cfile config.conf --rfile $reads --sigmacfile sigma_config.cfg --local
+			bash executionMethods.bash --cfile config.conf --rfile $reads --sigmacfile sigma_config.cfg
 			mv sigma_out.gvector.txt sigma_$reads.txt #to make the difference where the out belongs
 		done
 * This is a first version, it's possible that you have an error in some part (or a lot of them, we apologize for that) and the script will continue improve self.
