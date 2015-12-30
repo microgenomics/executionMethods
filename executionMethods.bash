@@ -2,7 +2,6 @@
 set -e
 
 cfileband=0
-localband=0
 statusband=0
 rfileband=0
 dbpsband=0
@@ -40,9 +39,6 @@ do
 	"--PSfilterdb")
 		psfilterdb=1
 	;;
-	"--local")
-		localband=1
-	;;
 	"--dbmarker")
 		dbmarkerband=1
 	;;
@@ -51,12 +47,11 @@ do
 	;;
 	"--help")
 		echo "#########################################################################################"
-		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[dboption] [databases] --local (only if you use this module alone)"
+		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[dboption] [databases]"
 		echo -e "\nOptions aviable:"
 		echo "--cfile configuration file check README for more information"
 		echo "--rfile reads file, if you have paired end reads, use: --rfile readfile1.fa,readfile2.fa"
 		
-		echo "--local this flag is to make all works in your local folder, if you use this module separately from SEPA modules, use this flag"
 		echo "--PSfilterdb pathoscope filter databases prefix"
 		echo "--dbmarker is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag (full path)"
 		echo "--sigmacfile is the configuration file used by sigma, if in your cfile, SIGMA is in the METHODS flag, you must provide the sigmacfile"
@@ -282,9 +277,16 @@ function pathoscopeFunction {
 			else
 				echo "$PAIREND1 doesn't exist"
 				exit
-			fi	
+			fi
+		else
+			prior=`wc -l $RFILE |awk '{print $1*2}'`
+			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+			perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+			RFILE=$SINGLE.fastq
 		fi
+
 		cd $TMPNAME
+
 		if [ "$PSFDB" == "" ];then
 			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED -numThreads $THREADS &
 			pids[${i}]=$!
@@ -328,7 +330,11 @@ function metaphlanFunction {
 		else
 			echo "$PAIREND1 doesn't exist"
 			exit
-		fi	
+		fi
+	else
+		SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+		perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+		RFILE=$SINGLE.fastq
 	fi
 	
 	cd $TMPNAME
@@ -436,8 +442,11 @@ function metamixFunction2 {
 
 function cleanFunction {
 	wait $!
+
 	if [ "$READS" == "paired" ]; then
 		rm -f $TMPNAME/$PAIREND1.fastq $TMPNAME/$PAIREND2.fastq
+	else
+		rm -f $TMPNAME/$TOCLEAN.fastq
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
@@ -465,12 +474,6 @@ if [ $((statusband)) -ge 2 ]; then
 	#checking critical variables#
 	#############################
 
-	if [ -d "$TMPNAME" ]; then
-		echo "TMP folder exist, working in."
-	else
-		mkdir $TMPNAME
-	fi
-
 	if [ "$CORES" == "" ] || [ "$THREADS" == "" ]
 	then
 		echo "cores or threads are null, you must specify in the config file"
@@ -496,11 +499,12 @@ if [ $((statusband)) -ge 2 ]; then
 	###############################
 	###############################
 
-	case $localband in
-		"0")					
-			echo "we working on no local mode :D (try --local)"
-		;;
-		"1")
+			if [ -d "$TMPNAME" ]; then
+				echo "TMP folder exist, working in."
+			else
+				mkdir $TMPNAME
+			fi
+
 			for g in $METHOD
 			do
 				case $g in
@@ -522,17 +526,11 @@ if [ $((statusband)) -ge 2 ]; then
 					;;
 				esac
 			done
-		;;
-	esac
-
+		
 	###SECOND PART###
 	echo "waiting for mapping work"
 	wait $!
-		case $localband in
-		"0")					
-			echo "we working on no local mode :D (try --local)"
-		;;
-		"1")
+
 			for g in $METHOD
 			do
 				case $g in
@@ -555,11 +553,9 @@ if [ $((statusband)) -ge 2 ]; then
 				esac
 			done
 			cleanFunction
-		;;
-	esac
 
 else
 	echo "Invalid or Missing Parameters, print --help to see the options"
-	echo "Usage: bash executionMethods --cfile [config file] --rfile [readsfile] -[dboption] [databases] --local (only if you use this module alone)"
+	echo "Usage: bash executionMethods --cfile [config file] --rfile [readsfile] -[dboption] [databases]"
 	exit
 fi
