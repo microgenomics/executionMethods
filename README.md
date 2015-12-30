@@ -36,6 +36,26 @@ Additionally, depending of the case, you have to use some of this flags:
 * --dbmarker: is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag and if you use metaphlan, provide pkl file with full path.
 * --sigmacfile: is the configuration file used by sigma, if SIGMA is in the METHODS flag (in configuration file [cfile]), you must provide the full path to sigma configuration file.
 
+##Configuration file
+This file contain several parameters to steer the script (most of them just serves in no local mode), the minimal parameters are:
+
+	# executionMethods configuration file #
+	# add comments using the pound character
+
+	CORES=3
+	THREADS=20
+	ABSENT=no
+	METHOD=PATHOSCOPE,METAPHLAN
+	PATHOSCOPEHOME=/Users/castrolab01/pathoscope
+	METAPHLAN2HOME=/Users/castrolab01/Desktop/metaphlan2
+
+	#ABSENT is a flag used to specify whether you are using a database where you know a target microbe is present or not. Default is no.
+	#if flag is set to "yes", then you need to specify a NCBI's taxonomy ID for the taxon that is kept constant using tipermanent
+	#tipermanent=478435
+	#ABUNDANCE specify how many reads mapped or should map to the database. This flag will convert raw read counts to proportions
+	#ABUNDANCE=100000
+	#METHOD contain the software results that you want parse
+
 ##Examples
 
 	bash executionMethods.bash --cfile config.conf --rfile reads.1.fa,reads.2.fa --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B --local
