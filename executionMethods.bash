@@ -13,7 +13,7 @@ psfilterdb=0
 dbmarkerband=0
 sigmacfileband=0
 PSFDB=""
-
+TOCLEAN=""
 TMPNAME="TMP_FOLDER"
 
 for i in "$@"
@@ -262,6 +262,7 @@ function pathoscopeFunction {
 
 		echo "wake up pathoscope"
 		FILE=$RFILE
+
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
@@ -298,6 +299,7 @@ function pathoscopeFunction {
 
 		
 		cd ..
+		TOCLEAN=$RFILE
 		RFILE=$FILE
 
 }
@@ -335,6 +337,7 @@ function metaphlanFunction {
 	python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat
 	
 	cd ..
+	TOCLEAN=$RFILE
 	RFILE=$FILE
 
 }
@@ -434,19 +437,22 @@ function metamixFunction2 {
 function cleanFunction {
 	wait $!
 	if [ "$READS" == "paired" ]; then
-		rm $TMPNAME/$PAIREND1.fastq $TMPNAME/$PAIREND2.fastq
+		rm -f $TMPNAME/$PAIREND1.fastq $TMPNAME/$PAIREND2.fastq
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 		rm -f *.sam
-		rm $TMPNAME/pathoscope_$RFILE.sam
+		rm -f $TMPNAME/pathoscope_$TOCLEAN.sam
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		rm $TMPNAME/bowtieout$RFILE.bz2
+		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 	fi
-	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		rm $TMPNAME/bowtieout$RFILE.bz2
+	if [[ "$METHOD" =~ "METAMIX" ]]; then
+		rm -f $TMPNAME/blastOut$PAIREND1.$PAIREND2.tab
+	fi
+	if [[ "$METHOD" =~ "SIGMA" ]]; then
+		rm -f sigma_out.html sigma_out.ipopt.txt sigma_out.qmatrix
 	fi
 	echo "Done :D"
 }
