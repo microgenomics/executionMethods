@@ -177,7 +177,7 @@ do
 
 			if [ $((ok)) -ge 1 ]; then
 				DBMX=$i
-				dbmx2band=0
+				dbmxband=0
 			else
 				echo "$i file no exist"
 				exit
@@ -232,29 +232,32 @@ done
 #This variables control the total procces to use
 
 declare -A pids
-i=0
+i=`tail -n 1 corescontrol |awk '{print $1}'`
 
 #################################################
 
 function coresControlFunction {
+
 	if [ $((i)) -eq $((CORES)) ]; then
-			for pid in ${pids[*]}
-			do 
-				wait $pid
-				break 
-			done
-			i=$((i-1))
+		band="foo"
+		while ! [ "$band" == "" ];
+		do
+			firstpid=`head -n 1 corescontrol |awk '{print $2}'`
+			wait $firstpid > pidlog
+			band=`cat pidlog`
+			sed -i '' "1d" corescontrol
+			rm pidlog
+		done		
+		i=$((i-1))
 	fi
 }
 
 function pathoscopeFunction {
 
-	coresControlFunction
 	if [ "$DBPS" == "" ];then
 		echo "you must provide a database for pathoscope"
-	fi
-
-
+	else
+		coresControlFunction
 		echo "wake up pathoscope"
 		FILE=$RFILE
 
@@ -264,12 +267,13 @@ function pathoscopeFunction {
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
-					PAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-					PAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
+					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					prior=`wc -l $PAIREND1 |awk '{print $1*2}'`
-					perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$PAIREND1.fastq
-					perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$PAIREND2.fastq
-					RFILE=`echo "$PAIREND1.fastq,$PAIREND2.fastq"`
+					fasta_to_fastqFunction
+					perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+					perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
 				else
 					echo "$PAIREND2 doesn't exist"
 					exit
@@ -279,8 +283,9 @@ function pathoscopeFunction {
 				exit
 			fi
 		else
-			prior=`wc -l $RFILE |awk '{print $1*2}'`
+			prior=`wc -l $RFILE |awk '{print $1}'`
 			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+			fasta_to_fastqFunction
 			perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
 			RFILE=$SINGLE.fastq
 		fi
@@ -288,63 +293,75 @@ function pathoscopeFunction {
 		cd $TMPNAME
 
 		if [ "$PSFDB" == "" ];then
-			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED -numThreads $THREADS &
+			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
 			pids[${i}]=$!
 			i=$((i+1))
 			SAMFILE=pathoscope_$RFILE.sam
 		else
-			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED -numThreads $THREADS &
+			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
 			pids[${i}]=$!
 			i=$((i+1))
+
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
 
-		
 		cd ..
+		echo "$i $!" >> corescontrol
+
 		TOCLEAN=$RFILE
 		RFILE=$FILE
+
+	fi
+
+
 
 }
 
 function metaphlanFunction {
 
-	coresControlFunction
-	FILE=$RFILE
+	if [ "$DBM2" == "" ];then
+		echo "you must provide a database for metaphlan"
+	else
+		coresControlFunction
+		FILE=$RFILE
 
-	echo "wake up metaphlan"
-	if [ "$READS" == "paired" ]; then
-		PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-		PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
-		#next, check the files (tolerance to missing files)
-		if [ -f "$PAIREND1" ];then
-			if [ -f "$PAIREND2" ];then
-				PAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-				PAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
-				perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$PAIREND1.fastq
-				perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$PAIREND2.fastq
-				RFILE=`echo "$PAIREND1.fastq,$PAIREND2.fastq"`
+		echo "wake up metaphlan"
+		if [ "$READS" == "paired" ]; then
+			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
+			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			#next, check the files (tolerance to missing files)
+			if [ -f "$PAIREND1" ];then
+				if [ -f "$PAIREND2" ];then
+					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
+					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+					perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
+				else
+					echo "$PAIREND2 doesn't exist"
+					exit
+				fi
 			else
-				echo "$PAIREND2 doesn't exist"
+				echo "$PAIREND1 doesn't exist"
 				exit
 			fi
 		else
-			echo "$PAIREND1 doesn't exist"
-			exit
+			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+			fasta_to_fastqFunction
+			perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+			RFILE=$SINGLE.fastq
 		fi
-	else
-		SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
-		perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-		RFILE=$SINGLE.fastq
+		
+		cd $TMPNAME
+		
+		AVIABLE=`echo "$CORES - $i" |bc`
+		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat
+		pids[${i}]=$!
+		i=$AVIABLE
+		cd ..
+		TOCLEAN=$RFILE
+		RFILE=$FILE
 	fi
-	
-	cd $TMPNAME
-	
-	AVIABLE=`echo "$CORES - $i" |bc`
-	python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat
-	
-	cd ..
-	TOCLEAN=$RFILE
-	RFILE=$FILE
 
 }
 
@@ -353,48 +370,50 @@ function metamixFunction {
 		coresControlFunction
 
 	if [ "$DBMX" == "" ];then
-		echo "you must provide a database for pathoscope"
-	fi
+		echo "you must provide a database for metamix"
+	else
+		if [ "$READS" == "paired" ]; then
+			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
+			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			#next, check the files (tolerance to missing files)
+			if [ -f "$PAIREND1" ];then
+				if [ -f "$PAIREND2" ];then
+					
+					cp $PAIREND1 > $TMPNAME/.
+					cp $PAIREND2 > $TMPNAME/.
+					PAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
+					PAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 
-	if [ "$READS" == "paired" ]; then
-		PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-		PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
-		#next, check the files (tolerance to missing files)
-		if [ -f "$PAIREND1" ];then
-			if [ -f "$PAIREND2" ];then
-				
-				cp $PAIREND1 > $TMPNAME/.
-				cp $PAIREND2 > $TMPNAME/.
-				PAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-				PAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					cd $TMPNAME
+					
+					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab &
+					pids[${i}]=$!
+					i=$((i+1))
 
-				cd $TMPNAME
-				
-				AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-				blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab &
-				pids[${i}]=$!
-				i=$((i+1))
+					coresControlFunction
+					
+					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab &
+					pids[${i}]=$!
+					i=$((i+1))
 
-				coresControlFunction
-				
-				AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-				blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab &
-				pids[${i}]=$!
-				i=$((i+1))
-
-				cd ..
-								
+					cd ..
+									
+				else
+					echo "$PAIREND2 doesn't exist"
+					exit
+				fi
 			else
-				echo "$PAIREND2 doesn't exist"
+				echo "$PAIREND1 doesn't exist"
 				exit
 			fi
 		else
-			echo "$PAIREND1 doesn't exist"
-			exit
+			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$RFILE.tab &
 		fi
-	else
-		blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$RFILE.tab &
 	fi
+
+
 
 	
 }
@@ -409,7 +428,9 @@ function sigmaFunction {
 	cd $TMPNAME
 
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../
-
+	pids[${i}]=$!
+	i=$AVIABLE
+	
 	cd ..
 
 }
@@ -464,6 +485,41 @@ function cleanFunction {
 		rm -f sigma_out.html sigma_out.ipopt.txt sigma_out.qmatrix
 	fi
 	echo "Done :D"
+}
+
+function fasta_to_fastqFunction {
+	echo '#!/usr/bin/perl
+			use strict;
+
+			my $file = $ARGV[0];
+			open FILE, $file;
+
+			my ($header, $sequence, $sequence_length, $sequence_quality);
+			while(<FILE>) {
+			        chomp $_;
+			        if ($_ =~ /^>(.+)/) {
+			                if($header ne "") {
+			                        print "\@".$header."\n";
+			                        print $sequence."\n";
+			                        print "+"."\n";
+			                        print $sequence_quality."\n";
+			                }
+			                $header = $1;
+					$sequence = "";
+					$sequence_length = "";
+					$sequence_quality = "";
+			        }
+				else { 
+					$sequence .= $_;
+					$sequence_length = length($_); 
+					for(my $i=0; $i<$sequence_length; $i++) {$sequence_quality .= "I"} 
+				}
+			}
+			close FILE;
+			print "\@".$header."\n";
+			print $sequence."\n";
+			print "+"."\n";
+			print $sequence_quality."\n";' > fasta_to_fastq.pl
 }
 
 #begin the code
