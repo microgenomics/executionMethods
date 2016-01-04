@@ -249,6 +249,7 @@ function coresControlFunction {
 			firstpid=`head -n 1 corescontrol |awk '{print $2}'`
 			wait $firstpid > delete_manual
 			sed -i '' "1d" corescontrol
+			band=`cat delete_manual`
 		done		
 		i=$((i-1))
 	fi
@@ -312,19 +313,22 @@ function pathoscopeFunction {
 
 		if [ "$PSFDB" == "" ];then
 			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
-			pids[${i}]=$!
+			lastpid=$!
+
 			i=$((i+1))
+
 			SAMFILE=pathoscope_$RFILE.sam
 		else
 			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
-			pids[${i}]=$!
+			lastpid=$!
+
 			i=$((i+1))
 
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
 	
 		cd ..
-		echo "$i $!" >> corescontrol
+		echo "$i $lastpid" >> corescontrol
 
 		TOCLEAN=$RFILE
 		RFILE=$FILE
@@ -384,12 +388,13 @@ function metaphlanFunction {
 		cd $TMPNAME
 		
 		AVIABLE=`echo "$CORES - $i" |bc`
-		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat
-		pids[${i}]=$!
+		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat &
+		lastpid=$!
+
 		i=$AVIABLE
 		
 		cd ..
-		echo "$i $!" >> corescontrol
+		echo "$i $lastpid" >> corescontrol
 		TOCLEAN=$RFILE
 		RFILE=$FILE
 	fi
@@ -419,7 +424,8 @@ function metamixFunction {
 					
 					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab &
-					pids[${i}]=$!
+					lastpid=$!
+
 					i=$((i+1))
 			                echo "$i $!" >> ../corescontrol
 
@@ -427,7 +433,8 @@ function metamixFunction {
 					
 					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab &
-					pids[${i}]=$!
+					lastpid=$!
+
 					i=$((i+1))
 			                echo "$i $!" >> ../corescontrol
 
@@ -444,8 +451,10 @@ function metamixFunction {
 		else
 			cd $TMPNAME
 			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$RFILE.tab &
+			lastpid=$!
+
 			cd ..
-			echo "$i $!" >> corescontrol
+			echo "$i $lastpid" >> corescontrol
 		fi
 	fi
 
@@ -464,11 +473,12 @@ function sigmaFunction {
 	cd $TMPNAME
 
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../
-	pids[${i}]=$!
+	lastpid=$!
+
 	i=$AVIABLE
 	
 	cd ..
-        echo "$i $!" >> corescontrol
+        echo "$i $lastpid" >> corescontrol
 
 }
 
@@ -481,10 +491,11 @@ function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
 	python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $prior &
+	lastpid=$!
+
 	cd ..
-        pids[${i}]=$!
 	i=$((i+1))
-	echo "$i $!" >> corescontrol
+	echo "$i $lastpid" >> corescontrol
 }
 
 function metamixFunction2 {
@@ -494,14 +505,17 @@ function metamixFunction2 {
 		cat blastOut$PAIREND1.tab blastOut$PAIREND2.tab > blastOut$PAIREND1.$PAIREND2.tab
 		rm blastOut$PAIREND1.tab blastOut$PAIREND2.tab
 		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$PAIREND1.$PAIREND2.tab ${METAMIXHOME}/names.dmp metamix_$RFILE_assignedReads.tsv &
+		lastpid=$!
+
 
 	else
 		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$RFILE.tab ${METAMIXHOME}/names.dmp metamix_$RFILE.tsv &
+		lastpid=$!
+
 	fi
 	cd ..
-        pids[${i}]=$!
         i=$((i+1))
-        echo "$i $!" >> corescontrol
+        echo "$i $lastpid" >> corescontrol
 }
 
 function cleanFunction {
