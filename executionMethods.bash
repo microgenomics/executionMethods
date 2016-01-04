@@ -483,7 +483,7 @@ function cleanFunction {
 	wait $!
 
 	if [ "$READS" == "paired" ]; then
-		rm -f $TMPNAME/$PAIREND1.fastq $TMPNAME/$PAIREND2.fastq
+		rm -f $TMPNAME/$NAMEPAIREND1.fastq $TMPNAME/$NAMEPAIREND2.fastq
 	else
 		rm -f $TMPNAME/$TOCLEAN.fastq
 	fi
