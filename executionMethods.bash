@@ -256,7 +256,7 @@ function coresControlFunction {
 			fi
 
 		done		
-		i=$((i-1))
+		i=`head -n 1 corescontrol |awk -v actual=$i '{print actual-$3}'`
 	fi
 
 }
@@ -334,7 +334,7 @@ function pathoscopeFunction {
 		fi
 	
 		cd ..
-		echo "$i $lastpid" >> corescontrol
+		echo "$i $lastpid 1" >> corescontrol
 
 		TOCLEAN=$RFILE
 		RFILE=$FILE
@@ -394,10 +394,14 @@ function metaphlanFunction {
 		cd $TMPNAME
 		
 		AVIABLE=`echo "$CORES - $i" |bc`
-		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat
-		i=0
+		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat &
+		lastpid=$!
+		i=$CORES
 
 		cd ..
+
+		echo "$i $lastpid $AVIABLE" >> corescontrol
+
 		TOCLEAN=$RFILE
 		RFILE=$FILE
 	fi
@@ -426,19 +430,20 @@ function metamixFunction {
 					cd $TMPNAME
 					
 					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab
+					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab &
+					lastpid=$!
+					i=$CORES
 
-					i=0
-			        
-			        echo "$i $!" >> ../corescontrol
+			        echo "$i $lastpid $AVIABLE" >> ../corescontrol
 
 					coresControlFunction
 					
 					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab
+					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab &
+					lastpid=$!
+					i=$CORES
 
-					i=0
-			                echo "$i $!" >> ../corescontrol
+			        echo "$i $lastpid $AVIABLE" >> ../corescontrol
 
 					cd ..
 									
@@ -456,9 +461,10 @@ function metamixFunction {
 			AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$RFILE.tab &
 			lastpid=$!
+			i=$CORES
 
 			cd ..
-			echo "$i $lastpid" >> corescontrol
+			echo "$i $lastpid $AVIABLE" >> corescontrol
 		fi
 	fi
 
@@ -479,10 +485,10 @@ function sigmaFunction {
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../
 	lastpid=$!
 
-	i=$AVIABLE
+	i=$CORES
 	
 	cd ..
-        echo "$i $lastpid" >> corescontrol
+        echo "$i $lastpid $AVIABLE" >> corescontrol
 
 }
 
@@ -499,7 +505,7 @@ function pathoscopeFunction2 {
 
 	cd ..
 	i=$((i+1))
-	echo "$i $lastpid" >> corescontrol
+	echo "$i $lastpid 1" >> corescontrol
 }
 
 function metamixFunction2 {
@@ -519,7 +525,7 @@ function metamixFunction2 {
 	fi
 	cd ..
         i=$((i+1))
-        echo "$i $lastpid" >> corescontrol
+        echo "$i $lastpid 1" >> corescontrol
 }
 
 function cleanFunction {
