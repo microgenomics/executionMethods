@@ -236,7 +236,7 @@ declare -A pids
 if [ -f corescontrol ];then
 	i=`tail -n 1 corescontrol |awk '{print $1}'`
 else
-	i=$CORES
+	i=0
 fi
 #################################################
 
@@ -250,9 +250,11 @@ function coresControlFunction {
 			if [ "$firstpid" == "" ]; then
 				band="foo"
 			else
-				wait $firstpid > delete_manual
+				while kill -0 "$firstpid"; do
+					sleep 1
+				done				
 				sed -i '' "1d" corescontrol &
-				band=`cat delete_manual`
+				band=""
 			fi
 
 		done		
