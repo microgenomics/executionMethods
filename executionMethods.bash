@@ -1,5 +1,5 @@
 #make sure you have installed correctly the patogen detection software 
-set -e
+set -ex
 export LANG="en_US.UTF-8"
 
 cfileband=0
@@ -247,10 +247,8 @@ function coresControlFunction {
 		while ! [ "$band" == "" ];
 		do
 			firstpid=`head -n 1 corescontrol |awk '{print $2}'`
-			wait $firstpid > pidlog
-			band=`cat pidlog`
+			wait $firstpid > delete_manual
 			sed -i '' "1d" corescontrol
-			rm pidlog
 		done		
 		i=$((i-1))
 	fi
@@ -529,6 +527,7 @@ function cleanFunction {
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 		rm -f sigma_out.html sigma_out.ipopt.txt sigma_out.qmatrix
 	fi
+	rm -f delete_manual
 	echo "Done :D"
 }
 
