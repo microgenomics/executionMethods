@@ -482,7 +482,7 @@ function sigmaFunction {
 
 	cd $TMPNAME
 
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../ &
 	lastpid=$!
 
 	i=$CORES
