@@ -242,9 +242,9 @@ fi
 
 function coresControlFunction {
 
-	if [ $((i)) -eq $((CORES)) ]; then
-		band="foo"
-		while ! [ "$band" == "" ];
+	if [ $((i)) -ge $((CORES)) ]; then
+		band=""
+		while [ "$band" == "" ];
 		do
 			firstpid=`head -n 1 corescontrol |awk '{print $2}'`
 			if [ "$firstpid" == "" ]; then
