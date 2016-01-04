@@ -1,5 +1,6 @@
 #make sure you have installed correctly the patogen detection software 
 set -e
+export LANG="en_US.UTF-8"
 
 cfileband=0
 statusband=0
@@ -232,8 +233,11 @@ done
 #This variables control the total procces to use
 
 declare -A pids
-i=`tail -n 1 corescontrol |awk '{print $1}'`
-
+if [ -f corescontrol ];then
+	i=`tail -n 1 corescontrol |awk '{print $1}'`
+else
+	i=$CORES
+fi
 #################################################
 
 function coresControlFunction {
@@ -304,7 +308,7 @@ function pathoscopeFunction {
 
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
-
+	
 		cd ..
 		echo "$i $!" >> corescontrol
 
@@ -358,7 +362,9 @@ function metaphlanFunction {
 		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat
 		pids[${i}]=$!
 		i=$AVIABLE
+		
 		cd ..
+		echo "$i $!" >> corescontrol
 		TOCLEAN=$RFILE
 		RFILE=$FILE
 	fi
@@ -390,6 +396,7 @@ function metamixFunction {
 					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab &
 					pids[${i}]=$!
 					i=$((i+1))
+			                echo "$i $!" >> ../corescontrol
 
 					coresControlFunction
 					
@@ -397,6 +404,7 @@ function metamixFunction {
 					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab &
 					pids[${i}]=$!
 					i=$((i+1))
+			                echo "$i $!" >> ../corescontrol
 
 					cd ..
 									
@@ -409,7 +417,10 @@ function metamixFunction {
 				exit
 			fi
 		else
+			cd $TMPNAME
 			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$RFILE.tab &
+			cd ..
+			echo "$i $!" >> corescontrol
 		fi
 	fi
 
@@ -432,6 +443,7 @@ function sigmaFunction {
 	i=$AVIABLE
 	
 	cd ..
+        echo "$i $!" >> corescontrol
 
 }
 
@@ -445,6 +457,9 @@ function pathoscopeFunction2 {
 	cd $TMPNAME
 	python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $prior &
 	cd ..
+        pids[${i}]=$!
+	i=$((i+1))
+	echo "$i $!" >> corescontrol
 }
 
 function metamixFunction2 {
@@ -459,6 +474,9 @@ function metamixFunction2 {
 		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$RFILE.tab ${METAMIXHOME}/names.dmp metamix_$RFILE.tsv &
 	fi
 	cd ..
+        pids[${i}]=$!
+        i=$((i+1))
+        echo "$i $!" >> corescontrol
 }
 
 function cleanFunction {
@@ -471,7 +489,7 @@ function cleanFunction {
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
-		rm -f *.sam
+		rm -f updated_pathoscope_$RFILE.sam
 		rm -f $TMPNAME/pathoscope_$TOCLEAN.sam
 	fi
 	
