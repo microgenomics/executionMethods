@@ -247,9 +247,14 @@ function coresControlFunction {
 		while ! [ "$band" == "" ];
 		do
 			firstpid=`head -n 1 corescontrol |awk '{print $2}'`
-			wait $firstpid > delete_manual
-			sed -i '' "1d" corescontrol
-			band=`cat delete_manual`
+			if [ "$firstpid" == "" ]; then
+				band=""
+			else
+				wait $firstpid > delete_manual
+				sed -i '' "1d" corescontrol
+				band=`cat delete_manual`
+			fi
+
 		done		
 		i=$((i-1))
 	fi
