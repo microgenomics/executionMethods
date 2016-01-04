@@ -274,7 +274,16 @@ function pathoscopeFunction {
 					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					prior=`wc -l $PAIREND1 |awk '{print $1*2}'`
-					fasta_to_fastqFunction
+					
+					if [ -f fasta_to_fastq.pl ]; then
+						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+					else
+						fasta_to_fastqFunction 
+						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+					fi
+
 					perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
 					perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
@@ -289,9 +298,16 @@ function pathoscopeFunction {
 		else
 			prior=`wc -l $RFILE |awk '{print $1}'`
 			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
-			fasta_to_fastqFunction
-			perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-			RFILE=$SINGLE.fastq
+			
+			if [ -f fasta_to_fastq.pl ]; then
+				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+				RFILE=$SINGLE.fastq
+			else
+				fasta_to_fastqFunction
+				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+				RFILE=$SINGLE.fastq
+			fi
+
 		fi
 
 		cd $TMPNAME
@@ -338,8 +354,15 @@ function metaphlanFunction {
 				if [ -f "$PAIREND2" ];then
 					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
-					perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-					perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+
+					if [ -f fasta_to_fastq.pl ]; then
+						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+					else
+						fasta_to_fastqFunction 
+						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+					fi
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
 				else
 					echo "$PAIREND2 doesn't exist"
@@ -350,10 +373,14 @@ function metaphlanFunction {
 				exit
 			fi
 		else
-			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
-			fasta_to_fastqFunction
-			perl fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-			RFILE=$SINGLE.fastq
+			if [ -f fasta_to_fastq.pl ]; then
+				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+				RFILE=$SINGLE.fastq
+			else
+				fasta_to_fastqFunction
+				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+				RFILE=$SINGLE.fastq
+			fi
 		fi
 		
 		cd $TMPNAME
@@ -490,7 +517,7 @@ function cleanFunction {
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 		rm -f updated_pathoscope_$RFILE.sam
-		rm -f $TMPNAME/pathoscope_$TOCLEAN.sam
+		rm -f $TMPNAME/$SAMFILE
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
