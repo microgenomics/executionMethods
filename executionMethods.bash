@@ -251,7 +251,7 @@ function coresControlFunction {
 				band="foo"
 			else
 				while kill -0 "$firstpid"; do
-					sleep 1
+					sleep 5
 				done				
 				sed -i '' "1d" corescontrol &
 				band=""
@@ -484,7 +484,7 @@ function sigmaFunction {
 
 	cd $TMPNAME
 
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../ &
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../
 	lastpid=$!
 
 	i=$CORES
