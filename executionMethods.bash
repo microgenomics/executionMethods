@@ -232,7 +232,6 @@ done
 #################################################
 #This variables control the total procces to use
 
-declare -A pids
 if [ -f /tmp/corescontrol ];then
 	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 else
