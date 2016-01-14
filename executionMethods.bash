@@ -228,15 +228,6 @@ do
 done
 
 
-
-#################################################
-#This variables control the total procces to use
-
-if [ -f /tmp/corescontrol ];then
-	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-else
-	i=0
-fi
 #################################################
 
 function coresControlFunction {
@@ -268,7 +259,7 @@ fi
 }
 function fastalockFunction {
 	if mkdir /tmp/fastalock; then
-		echo "lock created"
+		echo "fastalock created"
 	else
 		sleep 10
 		fastalockFunction
@@ -299,15 +290,18 @@ function pathoscopeFunction {
 					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
+							wait $!
+
 						fi
 
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
+							wait $!
 						fi
 					fi
 					fastaunlockFunction
@@ -344,7 +338,12 @@ function pathoscopeFunction {
 
 		cd $TMPNAME
 	
-		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+		if [ -f /tmp/corescontrol ];then
+			i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+		else
+			i=0
+		fi		
+
 		coresControlFunction
 
 
@@ -392,15 +391,17 @@ function metaphlanFunction {
 					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
+							wait $!
 						fi
 
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
+							wait $!
 						fi
 					fi
 					fastaunlockFunction
@@ -432,7 +433,11 @@ function metaphlanFunction {
 		fi
 		
 		cd $TMPNAME
-		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+		if [ -f /tmp/corescontrol ];then
+			i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+		else
+			i=0
+		fi	
 		coresControlFunction
 
 		AVIABLE=`echo "$CORES - $i" |bc`
@@ -469,7 +474,11 @@ function metamixFunction {
 
 					cd $TMPNAME
 					
-					i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+					if [ -f /tmp/corescontrol ];then
+						i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+					else
+						i=0
+					fi	
 					coresControlFunction
 				
 					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
@@ -502,7 +511,11 @@ function metamixFunction {
 		else
 			cd $TMPNAME
 			
-			i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+			if [ -f /tmp/corescontrol ];then
+				i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+			else
+				i=0
+			fi	
 			coresControlFunction
 	
 			AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
@@ -527,7 +540,11 @@ function sigmaFunction {
 
 	cd $TMPNAME
 	
-	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	if [ -f /tmp/corescontrol ];then
+		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	else
+		i=0
+	fi	
 	coresControlFunction	
 	AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
@@ -549,7 +566,11 @@ function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
 
-	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	if [ -f /tmp/corescontrol ];then
+		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	else
+		i=0
+	fi
 	coresControlFunction	
 
 	python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $prior &
@@ -565,7 +586,11 @@ function pathoscopeFunction2 {
 function metamixFunction2 {
 	cd $TMPNAME
 
-	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	if [ -f /tmp/corescontrol ];then
+		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	else
+		i=0
+	fi
 	coresControlFunction
 
 	if [ "$READS" == "paired" ]; then
