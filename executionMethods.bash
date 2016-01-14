@@ -266,7 +266,18 @@ else
 	coresControlFunction
 fi
 }
+function fastalockFunction {
+	if mkdir /tmp/fastalock; then
+		echo "lock created"
+	else
+		sleep 10
+		fastalockFunction
+	fi
+}
+function fastaunlockFunction {
+	rm -r /tmp/fastalock
 
+}
 function pathoscopeFunction {
 
 	if [ "$DBPS" == "" ];then
@@ -285,17 +296,22 @@ function pathoscopeFunction {
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					prior=`wc -l $PAIREND1 |awk '{print $1}'`
 					
+					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
-						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						fi
+
 					else
 						fasta_to_fastqFunction 
-						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						fi
 					fi
+					fastaunlockFunction
 
-					perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-					perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
 				else
 					echo "$PAIREND2 doesn't exist"
@@ -309,14 +325,20 @@ function pathoscopeFunction {
 			prior=`wc -l $RFILE |awk '{print $1/2}'`
 			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
 			
+			fastalockFunction
 			if [ -f fasta_to_fastq.pl ]; then
-				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-				RFILE=$SINGLE.fastq
+				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
+					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+					RFILE=$SINGLE.fastq
+				fi
 			else
 				fasta_to_fastqFunction
-				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-				RFILE=$SINGLE.fastq
+				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
+					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+					RFILE=$SINGLE.fastq
+				fi
 			fi
+			fastaunlockFunction
 
 		fi
 
@@ -367,14 +389,22 @@ function metaphlanFunction {
 					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 
+					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
-						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						fi
+
 					else
 						fasta_to_fastqFunction 
-						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+						fi
 					fi
+					fastaunlockFunction
+
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
 				else
 					echo "$PAIREND2 doesn't exist"
@@ -385,14 +415,20 @@ function metaphlanFunction {
 				exit
 			fi
 		else
+			fastalockFunction
 			if [ -f fasta_to_fastq.pl ]; then
-				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-				RFILE=$SINGLE.fastq
+				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
+					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+					RFILE=$SINGLE.fastq
+				fi
 			else
 				fasta_to_fastqFunction
-				perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-				RFILE=$SINGLE.fastq
+				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
+					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+					RFILE=$SINGLE.fastq
+				fi
 			fi
+			fastaunlockFunction
 		fi
 		
 		cd $TMPNAME
