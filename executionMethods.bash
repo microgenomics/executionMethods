@@ -12,6 +12,8 @@ dbcsband=0
 psfilterdb=0
 dbmarkerband=0
 sigmacfileband=0
+csfileband=0
+dbcsgzband=0
 PSFDB=""
 TOCLEAN=""
 TMPNAME="TMP_FOLDER"
@@ -45,6 +47,12 @@ do
 	;;
 	"--sigmacfile")
 		sigmacfileband=1
+	;;
+	"--csfile")
+		csfileband=1
+	;;
+	"--dbcsgz")
+		dbcsgzband=1
 	;;
 	"--help")
 		echo "#########################################################################################"
@@ -221,7 +229,17 @@ do
 				echo "$i file no exist"
 				exit
 			fi
+		fi
 
+		if [ $((csfileband)) -eq 1 ]; then
+			if [ -f "$i" ]; then
+				CSFILE=$i
+				csfileband=1
+			fi
+		fi
+
+		if [ $((dbcsgzband)) -eq 1 ]; then
+			$DBCSGZ=$i
 		fi
 	;;
 	esac
@@ -345,6 +363,7 @@ function pathoscopeFunction {
 		fi		
 
 		coresControlFunction
+	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
 
 		if [ "$PSFDB" == "" ];then
@@ -368,7 +387,7 @@ function pathoscopeFunction {
 	fi
 
 
-
+ 
 }
 
 function metaphlanFunction {
@@ -439,9 +458,9 @@ function metaphlanFunction {
 			i=0
 		fi	
 		coresControlFunction
+	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-		AVIABLE=`echo "$CORES - $i" |bc`
-		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $AVIABLE > ../metaphlan_$RFILE.dat &
+		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat &
 		lastpid=$!
 		i=$CORES
 
@@ -480,9 +499,9 @@ function metamixFunction {
 						i=0
 					fi	
 					coresControlFunction
-				
-					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$PAIREND1.tab &
+					#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+
+					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$PAIREND1.tab &
 					lastpid=$!
 					i=$CORES
 
@@ -490,9 +509,9 @@ function metamixFunction {
 
 					i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 					coresControlFunction
-					
-					AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVAIBLE -out blastOut$PAIREND2.tab &
+						#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+
+					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$PAIREND2.tab &
 					lastpid=$!
 					i=$CORES
 
@@ -517,9 +536,9 @@ function metamixFunction {
 				i=0
 			fi	
 			coresControlFunction
-	
-			AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $AVIABLE -out blastOut$RFILE.tab &
+		#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+
+			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$RFILE.tab &
 			lastpid=$!
 			i=$CORES
 
@@ -546,20 +565,24 @@ function sigmaFunction {
 		i=0
 	fi	
 	coresControlFunction	
-	AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $AVIABLE -w ../
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w ../
 	lastpid=$!
 
 	i=$CORES
 	
 	cd ..
-        echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
+    echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 }
 
 function constrainsFunction {
- echo "constrains not yet"
+	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
+		python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o cs_$RFILE -t $CORES -d $DBCS -g $DBCSGZ --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+	else
+		echo "METAPHLAN work is needed to CONSTRAINS work"
+	fi
 }
 
 function pathoscopeFunction2 {
@@ -720,7 +743,7 @@ if [ $((statusband)) -ge 2 ]; then
 						sigmaFunction
 					;;
 					"CONSTRAINS")
-						constrainsFunction
+						#waiting for metaphlan work
 					;;
 				esac
 			done
@@ -746,7 +769,7 @@ if [ $((statusband)) -ge 2 ]; then
 						echo "sigma done"
 					;;
 					"CONSTRAINS")
-						echo "constrains done(?)"
+						constrainsFunction
 					;;
 				esac
 			done
