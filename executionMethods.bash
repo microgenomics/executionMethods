@@ -245,29 +245,33 @@ do
 	esac
 done
 
-
+declare -A pids
+i=0
+maxexe=5
 #################################################
-
+lastpid=0
 function coresControlFunction {
 if mkdir /tmp/lock; then
-	if [ $((i)) -ge $((CORES)) ]; then
-		band="foo"
-		while [ "$band" != "" ];
-		do
-			firstpid=`head -n 1 /tmp/corescontrol |awk '{print $2}'`
-			i=`head -n 1 /tmp/corescontrol |awk -v actual=$i '{print actual-$3}'`
-			if [ "$firstpid" == "" ]; then
-				band="foo"
-			else
-				echo "waiting for procces $firstpid"
-				while kill -0 "$firstpid"; do
-					sleep 5
-				done				
-				sed -i '' "1d" /tmp/corescontrol
-				band=""
-			fi
+	if [ $((i)) -ge $((maxexe)) ]; then
+		wait $lastpid
+		i=$((i-1))
 
-		done	
+#		band="foo"
+#		while [ "$band" != "" ];
+#		do
+#			firstpid=`head -n 1 /tmp/corescontrol |awk '{print $2}'`
+#			i=`head -n 1 /tmp/corescontrol |awk -v actual=$i '{print actual-$3}'`
+#			if [ "$firstpid" == "" ]; then
+#				band="foo"
+#			else
+#				echo "waiting for procces $firstpid"
+#				while kill -0 "$firstpid"; do
+#					sleep 5
+#				done			
+#				sed -i '' "1d" /tmp/corescontrol
+#				band=""
+#			fi
+#		done
 	fi
 	rm -r /tmp/lock
 else
@@ -276,7 +280,7 @@ else
 fi
 }
 function fastalockFunction {
-	if mkdir /tmp/fastalock; then
+	if mkdir fastalock; then
 		echo "fastalock created"
 	else
 		sleep 10
@@ -284,7 +288,7 @@ function fastalockFunction {
 	fi
 }
 function fastaunlockFunction {
-	rm -r /tmp/fastalock
+	rm -r fastalock
 
 }
 function pathoscopeFunction {
@@ -356,11 +360,11 @@ function pathoscopeFunction {
 
 		cd $TMPNAME
 	
-		if [ -f /tmp/corescontrol ];then
-			i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-		else
-			i=0
-		fi		
+		#if [ -f /tmp/corescontrol ];then
+		#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+		#else
+		#	i=0
+		#fi		
 
 		coresControlFunction
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
@@ -375,9 +379,9 @@ function pathoscopeFunction {
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
-		
+		pids[${i}]=$lastpid
 		i=$((i+1))
-		echo "$i $lastpid 1" >> /tmp/corescontrol
+		#echo "$i $lastpid 1" >> /tmp/corescontrol
 
 		cd ..
 
@@ -452,21 +456,23 @@ function metaphlanFunction {
 		fi
 		
 		cd $TMPNAME
-		if [ -f /tmp/corescontrol ];then
-			i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-		else
-			i=0
-		fi	
+		#if [ -f /tmp/corescontrol ];then
+		#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+		#else
+		#	i=0
+		#fi	
 		coresControlFunction
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
 		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat &
 		lastpid=$!
-		i=$CORES
+		#i=$CORES
+		pids[${i}]=$lastpid		
+		i=$((i+1))
 
 		cd ..
 
-		echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
+		#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 		TOCLEAN=$RFILE
 		RFILE=$FILE
@@ -503,19 +509,21 @@ function metamixFunction {
 
 					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$PAIREND1.tab &
 					lastpid=$!
-					i=$CORES
+					pids[${i}]=$lastpid
+					i=$((i+1))
 
-			        echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
+			       # echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
-					i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+					#i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 					coresControlFunction
 						#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
 					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$PAIREND2.tab &
 					lastpid=$!
-					i=$CORES
+					pids[${i}]=$lastpid
+					i=$((i+1))
 
-			        echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
+			        #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 					cd ..
 									
@@ -530,20 +538,21 @@ function metamixFunction {
 		else
 			cd $TMPNAME
 			
-			if [ -f /tmp/corescontrol ];then
-				i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-			else
-				i=0
-			fi	
+			#if [ -f /tmp/corescontrol ];then
+			#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+			#else
+			#	i=0
+			#fi	
 			coresControlFunction
 		#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
 			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$RFILE.tab &
 			lastpid=$!
-			i=$CORES
+			pids[${i}]=$lastpid
+			i=$((i+1))
 
 			cd ..
-			echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
+			#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 		fi
 	fi
 
@@ -559,21 +568,21 @@ function sigmaFunction {
 
 	cd $TMPNAME
 	
-	if [ -f /tmp/corescontrol ];then
-		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	else
-		i=0
-	fi	
+	#if [ -f /tmp/corescontrol ];then
+	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	#else
+	#	i=0
+	#fi	
 	coresControlFunction	
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w ../
 	lastpid=$!
-
-	i=$CORES
+	pids[${i}]=$lastpid
+	i=$((i+1))
 	
 	cd ..
-    echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
+    #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 }
 
@@ -589,18 +598,18 @@ function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
 
-	if [ -f /tmp/corescontrol ];then
-		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	else
-		i=0
-	fi
+	#if [ -f /tmp/corescontrol ];then
+	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	#else
+	#	i=0
+	#fi
 	coresControlFunction	
 
 	python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $prior &
 	lastpid=$!
-
+	pids[${i}]=$lastpid
 	i=$((i+1))
-	echo "$i $lastpid 1" >> /tmp/corescontrol
+	#echo "$i $lastpid 1" >> /tmp/corescontrol
 
 	cd ..
 
@@ -609,11 +618,11 @@ function pathoscopeFunction2 {
 function metamixFunction2 {
 	cd $TMPNAME
 
-	if [ -f /tmp/corescontrol ];then
-		i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	else
-		i=0
-	fi
+	#if [ -f /tmp/corescontrol ];then
+	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	#else
+	#	i=0
+	#fi
 	coresControlFunction
 
 	if [ "$READS" == "paired" ]; then
@@ -629,15 +638,15 @@ function metamixFunction2 {
 		lastpid=$!
 
 	fi
+	pids[${i}]=$lastpid
     i=$((i+1))
-    echo "$i $lastpid 1" >> /tmp/corescontrol
+    #echo "$i $lastpid 1" >> /tmp/corescontrol
 
     cd ..
 
 }
 
 function cleanFunction {
-	wait $!
 
 	if [ "$READS" == "paired" ]; then
 		rm -f $TMPNAME/$NAMEPAIREND1.fastq $TMPNAME/$NAMEPAIREND2.fastq
@@ -748,10 +757,13 @@ if [ $((statusband)) -ge 2 ]; then
 				esac
 			done
 		
-	###SECOND PART###
-	echo "waiting for mapping work"
-	wait $!
-
+			###SECOND PART###
+			echo "waiting for mapping work"
+			for pid in "${pids[@]}"
+			do
+			   wait $pid
+			done
+			i=0
 			for g in $METHOD
 			do
 				case $g in
@@ -772,6 +784,10 @@ if [ $((statusband)) -ge 2 ]; then
 						constrainsFunction
 					;;
 				esac
+			done
+			for pid in "${pids[@]}"
+			do
+			   wait $pid
 			done
 			cleanFunction
 
