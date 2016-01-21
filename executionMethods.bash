@@ -8,15 +8,17 @@ rfileband=0
 dbpsband=0
 dbm2band=0
 dbmxband=0
+mxnamesband=0
 dbcsband=0
 psfilterdb=0
 dbmarkerband=0
 sigmacfileband=0
 csfileband=0
-dbcsgzband=0
 PSFDB=""
 TOCLEAN=""
 TMPNAME="TMP_FOLDER"
+
+INITIALPATH=`pwd`
 
 for i in "$@"
 do
@@ -36,6 +38,9 @@ do
 	"--dbMX")
 		dbmxband=1
 	;;
+	"--MXnames")
+		mxnamesband=1
+	;;
 	"--dbCS")
 		dbcsband=1
 	;;
@@ -50,9 +55,6 @@ do
 	;;
 	"--csfile")
 		csfileband=1
-	;;
-	"--dbcsgz")
-		dbcsgzband=1
 	;;
 	"--help")
 		echo "#########################################################################################"
@@ -131,6 +133,9 @@ do
 					"METAMIXHOME")
 						METAMIXHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
+					"BLASTHOME")
+						BLASTHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+					;;
 					"METAPHLAN2HOME")
 						METAPHLAN2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
@@ -158,22 +163,29 @@ do
 		fi
 		
 		if [ $((dbpsband)) -eq 1 ]; then
-			ok=`ls -1 $i* |wc -l |awk '{print $1}'`
-
+			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
 				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				DBPS=`echo "$dbpath/$DBPS"`
 				dbpsband=0
+				statusband=$((statusband+1))
 			else
-				echo "$i file no exist"
-				exit
+					echo "$i file no exist"
+					exit
 			fi
 		fi
 		
 		if [ $((dbm2band)) -eq 1 ]; then
-			ok=`ls -1 $i* |wc -l |awk '{print $1}'`
+			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
-				DBM2=$i
+				DBM2=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				DBM2=`echo "$dbpath/$DBM2"`
 				dbm2band=0
 			else
 				echo "$i file no exist"
@@ -182,10 +194,13 @@ do
 		fi
 
 		if [ $((dbmxband)) -eq 1 ]; then
-			ok=`ls -1 $i* |wc -l |awk '{print $1}'`
-
+			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
-				DBMX=$i
+				DBMX=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				DBMX=`echo "$dbpath/$DBMX"`
 				dbmxband=0
 			else
 				echo "$i file no exist"
@@ -193,12 +208,29 @@ do
 			fi
 		fi
 
+		if [ $((mxnamesband)) -eq 1 ]; then
+			if [ -f "$i" ]; then
+				MXNAMES=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				MXNAMES=`echo "$dbpath/$MXNAMES"`
+				mxnamesband=0
+			else
+				echo "$i file no exist"
+				exit
+			fi
+		fi
 
 		if [ $((dbcsband)) -eq 1 ]; then
-			ok=`ls -1 $i* |wc -l |awk '{print $1}'`
+			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 
 			if [ $((ok)) -ge 1 ]; then
-				DBCS=$i
+				DBCS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				DBCS=`echo "$dbpath/$DBCS"`
 				dbcsband=0
 			else
 				echo "$i file no exist"
@@ -207,13 +239,27 @@ do
 		fi
 
 		if [ $((psfilterdb)) -eq 1 ]; then
-				PSFDB=$i
+			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
+			if [ $((ok)) -ge 1 ]; then
+				PSFDB=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				PSFDB=`echo "$dbpath/$PSFDB"`
 				psfilterdb=0
+			else
+				echo "$i file no exist"
+				exit
+			fi
 		fi
 
 		if [ $((dbmarkerband)) -eq 1 ]; then
-			if [ -f "$i" ]; then
-				DBMARKER=$i
+			if [ -f $i ]; then
+				DBMARKER=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				DBMARKER=`echo "$dbpath/$DBMARKER"`
 				dbmarkerband=0
 			else
 				echo "$i file no exist"
@@ -222,29 +268,39 @@ do
 		fi
 		
 		if [ $((sigmacfileband)) -eq 1 ]; then
-			if [ -f "$i" ]; then
+			if [ -f $i ]; then
+				SIGMACFILE=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				SIGMACFILE=`echo "$dbpath/$SIGMACFILE"`
 				sigmacfileband=0
-				SIGMACFILE=$i
+			else
+				echo "$i file no exist"
+				exit
+			fi
+
+		fi
+
+		if [ $((csfileband)) -eq 1 ]; then
+			if [ -f $i ]; then
+				CSFILE=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				CSFILE=`echo "$dbpath/$CSFILE"`
+				csfileband=1
 			else
 				echo "$i file no exist"
 				exit
 			fi
 		fi
 
-		if [ $((csfileband)) -eq 1 ]; then
-			if [ -f "$i" ]; then
-				CSFILE=$i
-				csfileband=1
-			fi
-		fi
-
-		if [ $((dbcsgzband)) -eq 1 ]; then
-			$DBCSGZ=$i
-		fi
 	;;
 	esac
 done
 
+#################################################
 declare -A pids
 i=0
 maxexe=5
@@ -293,9 +349,6 @@ function fastaunlockFunction {
 }
 function pathoscopeFunction {
 
-	if [ "$DBPS" == "" ];then
-		echo "you must provide a database for pathoscope"
-	else
 		echo "wake up pathoscope"
 		FILE=$RFILE
 
@@ -388,17 +441,11 @@ function pathoscopeFunction {
 		TOCLEAN=$RFILE
 		RFILE=$FILE
 
-	fi
-
-
  
 }
 
 function metaphlanFunction {
 
-	if [ "$DBM2" == "" ];then
-		echo "you must provide a database for metaphlan"
-	else
 		FILE=$RFILE
 
 		echo "wake up metaphlan"
@@ -476,15 +523,11 @@ function metaphlanFunction {
 
 		TOCLEAN=$RFILE
 		RFILE=$FILE
-	fi
 
 }
 
 function metamixFunction {
 
-	if [ "$DBMX" == "" ];then
-		echo "you must provide a database for metamix"
-	else
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
@@ -492,22 +535,25 @@ function metamixFunction {
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
 					
-					cp $PAIREND1 > $TMPNAME/.
-					cp $PAIREND2 > $TMPNAME/.
-					PAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-					PAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
+					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					mkdir $TMPNAME/metamix_$P1.$P2
+
+					cp $PAIREND1 $TMPNAME/metamix_$P1.$P2/$P1
+					cp $PAIREND2 $TMPNAME/metamix_$P1.$P2/$P2
 
 					cd $TMPNAME
+					cd metamix_$P1.$P2
 					
-					if [ -f /tmp/corescontrol ];then
-						i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-					else
-						i=0
-					fi	
+					#if [ -f /tmp/corescontrol ];then
+					#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+					#else
+					#	i=0
+					#fi	
 					coresControlFunction
 					#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-					blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$PAIREND1.tab &
+					${BLASTHOME}/blastn -query $P1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$P1.tab &
 					lastpid=$!
 					pids[${i}]=$lastpid
 					i=$((i+1))
@@ -518,21 +564,21 @@ function metamixFunction {
 					coresControlFunction
 						#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-					blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$PAIREND2.tab &
+					${BLASTHOME}/blastn -query $P2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$P2.tab &
 					lastpid=$!
 					pids[${i}]=$lastpid
 					i=$((i+1))
 
 			        #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
-
+			        cd ..
 					cd ..
 									
 				else
-					echo "$PAIREND2 doesn't exist"
+					echo "$PAIREND2 no exist"
 					exit
 				fi
 			else
-				echo "$PAIREND1 doesn't exist"
+				echo "$PAIREND1 no exist"
 				exit
 			fi
 		else
@@ -546,7 +592,7 @@ function metamixFunction {
 			coresControlFunction
 		#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-			blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$RFILE.tab &
+			blastn -query $RFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$RFILE.tab &
 			lastpid=$!
 			pids[${i}]=$lastpid
 			i=$((i+1))
@@ -554,10 +600,6 @@ function metamixFunction {
 			cd ..
 			#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 		fi
-	fi
-
-
-
 	
 }
 
@@ -576,7 +618,7 @@ function sigmaFunction {
 	coresControlFunction	
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w ../
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w 
 	lastpid=$!
 	pids[${i}]=$lastpid
 	i=$((i+1))
@@ -587,11 +629,7 @@ function sigmaFunction {
 }
 
 function constrainsFunction {
-	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o cs_$RFILE -t $CORES -d $DBCS -g $DBCSGZ --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
-	else
-		echo "METAPHLAN work is needed to CONSTRAINS work"
-	fi
+	python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o cs_$RFILE -t $CORES -d $DBCS -g $DBCSGZ --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
 }
 
 function pathoscopeFunction2 {
@@ -617,7 +655,7 @@ function pathoscopeFunction2 {
 
 function metamixFunction2 {
 	cd $TMPNAME
-
+	cd metamix_$P1.$P2
 	#if [ -f /tmp/corescontrol ];then
 	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 	#else
@@ -626,15 +664,15 @@ function metamixFunction2 {
 	coresControlFunction
 
 	if [ "$READS" == "paired" ]; then
-		cat blastOut$PAIREND1.tab blastOut$PAIREND2.tab > blastOut$PAIREND1.$PAIREND2.tab
-		rm blastOut$PAIREND1.tab blastOut$PAIREND2.tab
+		cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
+		rm blastOut$P1.tab blastOut$P2.tab
 
-		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$PAIREND1.$PAIREND2.tab ${METAMIXHOME}/names.dmp metamix_$RFILE_assignedReads.tsv &
+		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$P1.$P2.tab $MXNAMES ../../metamix_$P1.$P2_assignedReads.tsv &
 		lastpid=$!
 
 
 	else
-		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$RFILE.tab ${METAMIXHOME}/names.dmp metamix_$RFILE.tsv &
+		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$RFILE.tab $MXNAMES ../../metamix_$RFILE.tsv &
 		lastpid=$!
 
 	fi
@@ -643,7 +681,7 @@ function metamixFunction2 {
     #echo "$i $lastpid 1" >> /tmp/corescontrol
 
     cd ..
-
+    cd ..
 }
 
 function cleanFunction {
@@ -663,12 +701,67 @@ function cleanFunction {
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 	fi
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		rm -f $TMPNAME/blastOut$PAIREND1.$PAIREND2.tab
+		rm -f $TMPNAME/$P1 $TMPNAME/$P2
+		rm -rf $TMPNAME/metamix_$P1.$P2
+		rm -f $TMPNAME/blastOut$P1.$P2.tab
 	fi
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 		rm -f sigma_out.html sigma_out.ipopt.txt sigma_out.qmatrix
 	fi
 	echo "Done :D"
+}
+
+function criticalvariablesFunction {
+	pass=0
+	errormessage=""
+
+	if [ "$CORES" == "" ] || [ "$THREADS" == "" ]
+	then
+		errormessage=`echo -e "$errormessage cores or threads are null, you must specify in the config file\n"`
+		pass=$((pass+1))
+	fi
+
+	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
+		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
+			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database and pkl file in the command line\n"`
+			pass=$((pass+1))
+		fi
+	fi
+
+	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
+
+		if [ "$DBPS" == "" ];then
+			errormessage=`echo -e "$errormessage You must provide a database for pathoscope\n"`
+			pass=$((pass+1))
+		fi
+	fi
+
+	if [[ "$METHOD" =~ "METAMIX" ]]; then
+
+		if [ "$DBMX" == "" ];then
+			errormessage=`echo -e "$errormessage You must provide a database for metamix\n"`
+			pass=$((pass+1))
+		fi
+
+		if [ "$BLASTHOME" == "" ];then
+			errormessage=`echo -e "$errormessage You must provide BLASTHOME in config file (e.g /usr/local/ncbi/blast/bin)\n"`
+			pass=$((pass+1))
+		fi
+	fi
+
+	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
+		if [[ ! "$METHOD" =~ "METAPHLAN" ]]; then
+			errormessage=`echo -e "$errormessage METAPHLAN is needed to CONSTRAINS work\n"`
+			pass=$((pass+1))
+		fi
+	fi
+
+	if [ $((pass)) -eq 0 ];then
+		echo "all parameters ok"
+	else
+		echo "$errormessage"
+		exit
+	fi
 }
 
 function fasta_to_fastqFunction {
@@ -709,28 +802,12 @@ function fasta_to_fastqFunction {
 #begin the code
 
 if [ $((statusband)) -ge 2 ]; then
-
-	#############################
-	#checking critical variables#
-	#############################
-
-	if [ "$CORES" == "" ] || [ "$THREADS" == "" ]
-	then
-		echo "cores or threads are null, you must specify in the config file"
-		exit
-	fi
-
-	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
-			echo "METAPHLAN is specify in the config file, but you must provide a database and pkl file in the command line"
-			exit
-		fi
-	fi
-	###############################
-	###############################
+cd $INITIALPATH
+#Check some parameters before do something
+criticalvariablesFunction
 
 			if [ -d "$TMPNAME" ]; then
-				echo "TMP folder exist, working in."
+				echo "$TMPNAME exist, working in."
 			else
 				mkdir $TMPNAME
 			fi
