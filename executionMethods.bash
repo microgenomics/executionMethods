@@ -167,9 +167,6 @@ do
 			if [ $((ok)) -ge 1 ]; then
 				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
 				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
-				dbpath=`pwd`
-				DBPS=`echo "$dbpath/$DBPS"`
 				dbpsband=0
 				statusband=$((statusband+1))
 			else
@@ -654,8 +651,7 @@ function pathoscopeFunction2 {
 }
 
 function metamixFunction2 {
-	cd $TMPNAME
-	cd metamix_$P1.$P2
+
 	#if [ -f /tmp/corescontrol ];then
 	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 	#else
@@ -667,12 +663,12 @@ function metamixFunction2 {
 		cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
 		rm blastOut$P1.tab blastOut$P2.tab
 
-		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$P1.$P2.tab $MXNAMES ../../metamix_$P1.$P2_assignedReads.tsv &
+		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R $TMPNAME/metamix_$P1.$P2/blastOut$P1.$P2.tab $MXNAMES metamix_$P1.$P2_assignedReads.tsv &
 		lastpid=$!
 
 
 	else
-		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R blastOut$RFILE.tab $MXNAMES ../../metamix_$RFILE.tsv &
+		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R $TMPNAME/metamix_$P1.$P2/blastOut$RFILE.tab $MXNAMES metamix_$RFILE.tsv &
 		lastpid=$!
 
 	fi
@@ -680,8 +676,6 @@ function metamixFunction2 {
     i=$((i+1))
     #echo "$i $lastpid 1" >> /tmp/corescontrol
 
-    cd ..
-    cd ..
 }
 
 function cleanFunction {
