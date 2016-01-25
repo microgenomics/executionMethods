@@ -8,6 +8,7 @@ executionMethods Module is the second module from SEPA (Simulation, Execution, P
 ##Requirements
 
 * Bash version 4 (comes with Linux and MacOSX)
+* Pathogen detection software installed
 
 ##Usage
 
@@ -84,11 +85,10 @@ executionMethods just move the files that are made by the softwares, executionMe
 * Constrains: not aviable yet
 
 ##Warnings
-* Be careful with sigma, this software doesn't provide some flag to differentiate the output files, so, try to don't execute executionMethods multi times, if sigma is in METHODS. Instead, you can tell to sigma use all cores aviables, then change the name files when sigma finish the align, and finally re-run sigma with new inputs, everything in a loop. something like this:
-	
-		for reads in `cat read_list.txt`
-		do
-			bash executionMethods.bash --cfile config.conf --rfile $reads --sigmacfile sigma_config.cfg
-			mv sigma_out.gvector.txt sigma_$reads.txt #to make the difference where the out belongs
-		done
-* This is a first version, it's possible that you have an error in some part (or a lot of them, we apologize for that) and the script will continue improve self.
+* Metamix: If you only use Metamix, ignore this warning. Some times metamix fails in last step and output file is not generated, so, this module implements a tolerance for ten execution (automatically re-runs until ten times if execution  fails, but there is not warranty that work after all runs), due to this, is not possible execute Metamix in an independent process making a query waiting if your config file is like this:
+
+		METHOD=METAMIX,PATHOSCOPE,METAPHLAN
+to solve this problem, move METAMIX to the final line, like this:
+		
+		METHOD=PATHOSCOPE,METAPHLAN,METAMIX
+this will execute pathoscope in an independent process, next metaphlan in an independent process and finally metamix in the main process (not independent), but is the last execution so this will not generate a query waiting.

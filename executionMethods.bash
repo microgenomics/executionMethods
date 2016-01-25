@@ -1,5 +1,5 @@
 #make sure you have installed correctly the patogen detection software 
-set -e
+set -ex
 export LANG="en_US.UTF-8"
 
 cfileband=0
@@ -9,13 +9,14 @@ dbpsband=0
 dbm2band=0
 dbmxband=0
 mxnamesband=0
-dbcsband=0
 psfilterdb=0
 dbmarkerband=0
 sigmacfileband=0
 csfileband=0
+dbsgband=0
 PSFDB=""
 TOCLEAN=""
+SIGMACFILE=""
 TMPNAME="TMP_FOLDER"
 
 INITIALPATH=`pwd`
@@ -32,8 +33,14 @@ do
 	"--dbPS")
 		dbpsband=1
 	;;
+	"--PSfilterdb")
+		psfilterdb=1
+	;;
 	"--dbM2")
 		dbm2band=1
+	;;
+	"--dbmarker")
+		dbmarkerband=1
 	;;
 	"--dbMX")
 		dbmxband=1
@@ -41,17 +48,11 @@ do
 	"--MXnames")
 		mxnamesband=1
 	;;
-	"--dbCS")
-		dbcsband=1
-	;;
-	"--PSfilterdb")
-		psfilterdb=1
-	;;
-	"--dbmarker")
-		dbmarkerband=1
-	;;
 	"--sigmacfile")
 		sigmacfileband=1
+	;;
+	"--dbSG")
+		dbsgband=1
 	;;
 	"--csfile")
 		csfileband=1
@@ -72,6 +73,7 @@ do
 		echo "--dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index)"
 		echo "--dbM2 metaphlan database folder and prefix: e.g /home/user/dbmarkers_bt2/targetdb (bowtie2 index)"
 		echo "--dbMX metamix database folder and prefix: e.g /home/user/dbmetamix_nhi/targetdb (blast index)"
+		echo "..MXnames metamix names translation, is a file with format 'ti name'"
 		echo "--dbCS constrains database folder"
 		echo "note: you must provide sigma database folder in the sigma config file"
 		echo -e "\n#########################################################################################"
@@ -130,9 +132,6 @@ do
 					"SIGMAHOME")
 						SIGMAHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
-					"METAMIXHOME")
-						METAMIXHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
 					"BLASTHOME")
 						BLASTHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
@@ -141,6 +140,12 @@ do
 					;;
 					"CONSTRAINSHOME")
 						CONSTRAINSHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+					;;
+					"SAMTOOLSHOME")
+						SAMTOOLSHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+					;;
+					"BOWTIE2HOME")
+						BOWTIE2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
 					;;
 				esac
 			done
@@ -154,7 +159,6 @@ do
 		fi
 		
 		if [ $((rfileband)) -eq 1 ]; then
-			statusband=$((statusband+1))
 
 			#first, we check if exist the pair end call.
 			RFILE=$i
@@ -219,22 +223,6 @@ do
 			fi
 		fi
 
-		if [ $((dbcsband)) -eq 1 ]; then
-			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
-
-			if [ $((ok)) -ge 1 ]; then
-				DBCS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
-				dbpath=`pwd`
-				DBCS=`echo "$dbpath/$DBCS"`
-				dbcsband=0
-			else
-				echo "$i file no exist"
-				exit
-			fi
-		fi
-
 		if [ $((psfilterdb)) -eq 1 ]; then
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
@@ -274,6 +262,17 @@ do
 				sigmacfileband=0
 			else
 				echo "$i file no exist"
+				exit
+			fi
+
+		fi
+
+		if [ $((dbsgband)) -eq 1 ]; then
+			if [ -d $i ]; then
+				DBSG=$i
+				dbsgband=0
+			else
+				echo "$i master directory no exist"
 				exit
 			fi
 
@@ -344,12 +343,8 @@ function fastaunlockFunction {
 	rm -r fastalock
 
 }
-function pathoscopeFunction {
-
-		echo "wake up pathoscope"
-		FILE=$RFILE
-
-		if [ "$READS" == "paired" ]; then
+function readstoFastqFunction {
+			if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
 			#next, check the files (tolerance to missing files)
@@ -357,15 +352,13 @@ function pathoscopeFunction {
 				if [ -f "$PAIREND2" ];then
 					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
-					prior=`wc -l $PAIREND1 |awk '{print $1}'`
-					
+
 					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
 							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
 							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
 							wait $!
-
 						fi
 
 					else
@@ -388,9 +381,6 @@ function pathoscopeFunction {
 				exit
 			fi
 		else
-			prior=`wc -l $RFILE |awk '{print $1/2}'`
-			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
-			
 			fastalockFunction
 			if [ -f fasta_to_fastq.pl ]; then
 				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
@@ -405,8 +395,14 @@ function pathoscopeFunction {
 				fi
 			fi
 			fastaunlockFunction
-
 		fi
+}
+function pathoscopeFunction {
+
+		echo "wake up pathoscope"
+		FILE=$RFILE
+
+		readstoFastqFunction
 
 		cd $TMPNAME
 	
@@ -446,58 +442,7 @@ function metaphlanFunction {
 		FILE=$RFILE
 
 		echo "wake up metaphlan"
-		if [ "$READS" == "paired" ]; then
-			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
-			#next, check the files (tolerance to missing files)
-			if [ -f "$PAIREND1" ];then
-				if [ -f "$PAIREND2" ];then
-					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
-
-					fastalockFunction
-					if [ -f fasta_to_fastq.pl ]; then
-						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait $!
-						fi
-
-					else
-						fasta_to_fastqFunction 
-						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait $!
-						fi
-					fi
-					fastaunlockFunction
-
-					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
-				else
-					echo "$PAIREND2 doesn't exist"
-					exit
-				fi
-			else
-				echo "$PAIREND1 doesn't exist"
-				exit
-			fi
-		else
-			fastalockFunction
-			if [ -f fasta_to_fastq.pl ]; then
-				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
-					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-					RFILE=$SINGLE.fastq
-				fi
-			else
-				fasta_to_fastqFunction
-				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
-					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
-					RFILE=$SINGLE.fastq
-				fi
-			fi
-			fastaunlockFunction
-		fi
+		readstoFastqFunction
 		
 		cd $TMPNAME
 		#if [ -f /tmp/corescontrol ];then
@@ -534,10 +479,17 @@ function metamixFunction {
 					
 					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
-					mkdir $TMPNAME/metamix_$P1.$P2
-
-					cp $PAIREND1 $TMPNAME/metamix_$P1.$P2/$P1
-					cp $PAIREND2 $TMPNAME/metamix_$P1.$P2/$P2
+					
+					if mkdir $TMPNAME/metamix_$P1.$P2; then #we make new folder because is easier to clean after execution
+						cp $PAIREND1 $TMPNAME/metamix_$P1.$P2/$P1
+						cp $PAIREND2 $TMPNAME/metamix_$P1.$P2/$P2
+					else
+						echo "Metamix: cleaning previous run"
+						rm -r $TMPNAME/metamix_$P1.$P2
+						mkdir $TMPNAME/metamix_$P1.$P2
+						cp $PAIREND1 $TMPNAME/metamix_$P1.$P2/$P1
+						cp $PAIREND2 $TMPNAME/metamix_$P1.$P2/$P2
+					fi
 
 					cd $TMPNAME
 					cd metamix_$P1.$P2
@@ -579,8 +531,19 @@ function metamixFunction {
 				exit
 			fi
 		else
+			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+
+			if mkdir $TMPNAME/metamix_$SINGLE; then #we make new folder because is easier to clean after execution
+				cp $RFILE $TMPNAME/metamix_$SINGLE/$SINGLE
+			else
+				echo "Metamix: cleaning previous run"
+				rm -r $TMPNAME/metamix_$SINGLE
+				mkdir $TMPNAME/metamix_$SINGLE
+				cp $RFILE $TMPNAME/metamix_$SINGLE/$SINGLE
+			fi
+
 			cd $TMPNAME
-			
+			cd metamix_$SINGLE
 			#if [ -f /tmp/corescontrol ];then
 			#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 			#else
@@ -589,11 +552,12 @@ function metamixFunction {
 			coresControlFunction
 		#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 
-			blastn -query $RFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$RFILE.tab &
+			blastn -query $SINGLE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab &
 			lastpid=$!
 			pids[${i}]=$lastpid
 			i=$((i+1))
 
+			cd ..
 			cd ..
 			#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 		fi
@@ -602,11 +566,8 @@ function metamixFunction {
 
 function sigmaFunction {
 											
-	cp $SIGMACFILE $TMPNAME/.
-	$SIGMACFILE=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-
 	cd $TMPNAME
-	
+
 	#if [ -f /tmp/corescontrol ];then
 	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 	#else
@@ -614,19 +575,38 @@ function sigmaFunction {
 	#fi	
 	coresControlFunction	
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+	if [ "$RTYPE" == "PAIRED" ];then
+		SGTOCLEAN=sigma_$RFILE
+		if mkdir $SGTOCLEAN ;then
+			cd $SGTOCLEAN
+		else
+			echo "sigma: cleaning previous run"
+			rm -rf $SGTOCLEAN
+			mkdir $SGTOCLEAN
+			cd $SGTOCLEAN
+		fi
+	else
+		SGTOCLEAN=sigma_$RFILE
+		if mkdir $SGTOCLEAN ;then
+			cd $SGTOCLEAN
+		else
+			echo "sigma: cleaning previous run"
+			rm -rf $SGTOCLEAN
+			mkdir $SGTOCLEAN
+			cd $SGTOCLEAN
+		fi
+	fi
+	mv ../$SIGMACFILE .
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w .
 
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w 
-	lastpid=$!
-	pids[${i}]=$lastpid
-	i=$((i+1))
-	
+	cd ..
 	cd ..
     #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 }
 
 function constrainsFunction {
-	python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o cs_$RFILE -t $CORES -d $DBCS -g $DBCSGZ --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+	python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o cs_$RFILE -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
 }
 
 function pathoscopeFunction2 {
@@ -658,27 +638,135 @@ function metamixFunction2 {
 	#	i=0
 	#fi
 	coresControlFunction
+	cd $TMPNAME
+	trys=10
+	metamixCodeFunction
 
-	if [ "$READS" == "paired" ]; then
-		cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
-		rm blastOut$P1.tab blastOut$P2.tab
+		if [ "$READS" == "paired" ]; then
+			cd metamix_$P1.$P2
+			BACKUPNAME=`echo "metamix_$P1.$P2"`
 
-		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R $TMPNAME/metamix_$P1.$P2/blastOut$P1.$P2.tab $MXNAMES metamix_$P1.$P2_assignedReads.tsv &
-		lastpid=$!
+			cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
+			rm blastOut$P1.tab blastOut$P2.tab
 
+			while [ $((trys)) -ge 1 ]
+			do
+				if Rscript ../MetaMix.R blastOut$P1.$P2.tab $MXNAMES ;then
+					#mv presentSpecies_assignedReads.tsv ../../$BACKUPNAME_assignedReads.tsv
+					break
+					echo "metamix execution successful"
+				else
+					trys=$((trys-1))
+					echo "metamix execution failed, ($trys retryings left)"
+				fi
+			done
 
-	else
-		mpirun -np 1 -quiet Rscript ${METAMIXHOME}/MetaMix.R $TMPNAME/metamix_$P1.$P2/blastOut$RFILE.tab $MXNAMES metamix_$RFILE.tsv &
-		lastpid=$!
+			cd ..
 
-	fi
-	pids[${i}]=$lastpid
-    i=$((i+1))
+		else
+			cd metamix_$SINGLE
+			while [ $((trys)) -ge 1 ]
+			do
+				if Rscript ../MetaMix.R blastOut$SINGLE.tab $MXNAMES ;then
+					mv presentSpecies_assignedReads.tsv ../../metamix_$SINGLE.tsv
+					break
+					echo "metamix execution successful"
+				else
+					trys=$((trys-1))
+					echo "metamix execution failed, ($trys retryings left)"
+				fi
+			done
+
+			cd ..
+		fi
+
+		if [ $((trys)) -eq 0 ];then
+			foldererror=`pwd`
+			echo "error: Metamix execution not finished in $foldererror"
+		fi
+
+	cd ..
+
     #echo "$i $lastpid 1" >> /tmp/corescontrol
 
 }
 
+function sigmaCfileFunction {
+
+	if [ "$READS" == "paired" ]; then
+		F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
+		SIZE=`tail -n1 $F1 |wc |awk '{print $3}'`
+		F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
+		F1=`echo "$F1.fastq"`
+		F2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
+		F2=`echo "$F2.fastq"`
+		
+		readstoFastqFunction
+		cd $TMPNAME	
+		FASTQFOLDER=`pwd`
+		cd ..
+		RFILE=`echo "$F1,$F2"`
+		#RFILE=`echo "$F1,$F2"`
+		
+		echo "[Program_Info]
+Bowtie_Directory=$BOWTIE2HOME
+Samtools_Directory=$SAMTOOLSHOME
+[Data_Info]
+Reference_Genome_Directory=$DBSG
+Paired_End_Reads_1=$FASTQFOLDER/$F1
+Paired_End_Reads_2=$FASTQFOLDER/$F2
+[Bowtie_Search]
+Maximum_Mismatch_Count=3
+Minimum_Fragment_Length=0
+Maximum_Fragment_Length=2000
+Bowtie_Threads_Number=$THREADS
+[Model_Probability]
+Mismatch_Probability=0.05
+Minimum_Relative_Abundance = 0.01
+[Statistics]
+Bootstrap_Iteration_Number=10
+Minumum_Coverage_Length=$SIZE
+Minimum_Average_Coverage_Depth=3
+" > $TMPNAME/sigma_$RFILE""_config.cfg
+		
+
+
+	else
+		SIZE=`tail -n1 $RFILE |wc |awk '{print $3}'`
+		readstoFastqFunction
+		RFILE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+		RFILE=`echo "$RFILE.fastq"`
+		cd $TMPNAME	
+		FASTQFOLDER=`pwd`
+		cd ..
+
+		echo "[Program_Info]
+Bowtie_Directory=$BOWTIE2HOME
+Samtools_Directory=$SAMTOOLSHOME
+[Data_Info]
+Reference_Genome_Directory=$DBSG
+Single_End_Reads=$FASTQFOLDER/$RFILE
+[Bowtie_Search]
+Maximum_Mismatch_Count=3
+Minimum_Fragment_Length=0
+Maximum_Fragment_Length=2000
+Bowtie_Threads_Number=$THREADS
+[Model_Probability]
+Mismatch_Probability=0.05
+Minimum_Relative_Abundance = 0.01
+[Statistics]
+Bootstrap_Iteration_Number=10
+Minumum_Coverage_Length=$SIZE
+Minimum_Average_Coverage_Depth=3
+" > $TMPNAME/sigma_$RFILE""_config.cfg
+
+
+	fi
+
+}
 function cleanFunction {
+
+	rm -f $TMPNAME/fasta_to_fastq.pl
 
 	if [ "$READS" == "paired" ]; then
 		rm -f $TMPNAME/$NAMEPAIREND1.fastq $TMPNAME/$NAMEPAIREND2.fastq
@@ -694,13 +782,18 @@ function cleanFunction {
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 	fi
+	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		rm -f $TMPNAME/$P1 $TMPNAME/$P2
-		rm -rf $TMPNAME/metamix_$P1.$P2
-		rm -f $TMPNAME/blastOut$P1.$P2.tab
+		rm -f MetaMix.R
+		if [ "$READS" == "paired" ]; then
+			rm -rf $TMPNAME/metamix_$P1.$P2
+		else
+			rm -rf $TMPNAME/metamix_$SINGLE
+		fi
 	fi
+	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		rm -f sigma_out.html sigma_out.ipopt.txt sigma_out.qmatrix
+		rm -rf $SGTOCLEAN
 	fi
 	echo "Done :D"
 }
@@ -708,6 +801,11 @@ function cleanFunction {
 function criticalvariablesFunction {
 	pass=0
 	errormessage=""
+
+	if [ "$RFILE" == "" ];then
+		errormessage=`echo -e "$errormessage You must provide a read file\n"`
+		pass=$((pass+1))
+	fi
 
 	if [ "$CORES" == "" ] || [ "$THREADS" == "" ]
 	then
@@ -717,7 +815,7 @@ function criticalvariablesFunction {
 
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
-			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database and pkl file in the command line\n"`
+			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line\n"`
 			pass=$((pass+1))
 		fi
 	fi
@@ -725,7 +823,7 @@ function criticalvariablesFunction {
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 
 		if [ "$DBPS" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database for pathoscope\n"`
+			errormessage=`echo -e "$errormessage You must provide a database (bowtie2 index), for pathoscope\n"`
 			pass=$((pass+1))
 		fi
 	fi
@@ -733,7 +831,7 @@ function criticalvariablesFunction {
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 
 		if [ "$DBMX" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database for metamix\n"`
+			errormessage=`echo -e "$errormessage You must provide a database (blast index), for metamix\n"`
 			pass=$((pass+1))
 		fi
 
@@ -747,6 +845,64 @@ function criticalvariablesFunction {
 		if [[ ! "$METHOD" =~ "METAPHLAN" ]]; then
 			errormessage=`echo -e "$errormessage METAPHLAN is needed to CONSTRAINS work\n"`
 			pass=$((pass+1))
+		fi
+	fi
+
+	if [[ "$METHOD" =~ "SIGMA" ]]; then
+
+		if [ "$SIGMACFILE" == "" ];then
+
+			if [ "$BOWTIE2HOME" == "" ];then
+				errormessage=`echo -e "$errormessage you must provide a bowtie2 home in config file (BOWTIE2HOME flag), to generate sigma config file\n"`
+				pass=$((pass+1))
+			fi
+			
+			if [ "$SAMTOOLSHOME" == "" ];then
+				errormessage=`echo -e "$errormessage you must provide a samtools home/bin (SAMTOOLSHOME flag), to generate sigma config file\n"`
+				pass=$((pass+1))
+			fi
+
+			if [ "$DBSG" == "" ]; then
+				errormessage=`echo -e "$errormessage you must provide a samtools home/bin (SAMTOOLSHOME flag), to generate sigma config file\n"`
+				pass=$((pass+1))
+			fi
+
+			if [ "$READS" == "paired" ]; then
+				RTYPE="PAIRED"
+			else
+				RTYPE="SINGLE"
+			fi
+
+			if [ $((pass)) -eq 0 ];then
+				sigmaCfileFunction
+				SIGMACFILE=`echo "sigma_$RFILE""_config.cfg"`
+
+			else
+				echo "$errormessage"
+				exit
+			fi
+
+		else
+
+			DBSG=`grep -1 "Reference_Genome_Directory" $SIGMACFILE |cut -d "=" -f 2`
+			PR1=`grep -1 "Paired_End_Reads_1" $SIGMACFILE |cut -d "=" -f 2 |rev |cut -d "/" -f 1 |rev`
+			PR2=`grep -1 "Paired_End_Reads_2" $SIGMACFILE |cut -d "=" -f 2 |rev |cut -d "/" -f 1 |rev`
+			SR=`grep -1 "Single_End_Reads" $SIGMACFILE |cut -d "=" -f 2 |rev |cut -d "/" -f 1 |rev`
+
+			if [ -d $DBSG ];then
+					errormessage=`echo -e "$errormessage you must provide a database folder in sigma config file\n"`
+					pass=$((pass+1))
+			fi
+			if [ "$SR" == "" ];then
+				if [ "$PR1" == "" ] || [ "$PR2" == "" ]; then
+					errormessage=`echo -e "$errormessage you must provide a read file in sigma config file\n"`
+					pass=$((pass+1))
+				else
+					RTYPE="PAIRED"
+				fi
+			else
+				RTYPE="SINGLE"
+			fi
 		fi
 	fi
 
@@ -793,9 +949,28 @@ function fasta_to_fastqFunction {
 			print $sequence_quality."\n";' > fasta_to_fastq.pl
 }
 
+function metamixCodeFunction {
+	echo 'args<-commandArgs()
+	blastab<-c(args[6])
+	names<-c(args[7])
+
+	require(metaMix)
+	library(methods)
+
+	###############################
+	print("execute Step1")
+	Step1<-generative.prob.nucl(blast.output.file=blastab,blast.default=FALSE,outDir=".")
+	print("execute Step2")
+	Step2 <- reduce.space(step1=Step1)
+	print("execute Step3")
+	Step3<-parallel.temper(step2=Step2)
+	print("execute Step4")
+	step4<-bayes.model.aver(step2=Step2, step3=Step3, taxon.name.map=names)' > MetaMix.R
+}
+
 #begin the code
 
-if [ $((statusband)) -ge 2 ]; then
+if [ $((statusband)) -ge 1 ]; then
 cd $INITIALPATH
 #Check some parameters before do something
 criticalvariablesFunction
@@ -845,10 +1020,10 @@ criticalvariablesFunction
 						echo "metaphlan done"
 					;;
 					"METAMIX")
-						metamixFunction2
+						metamixFunction2 #bottleneck not easy solution
 					;;
 					"SIGMA")
-					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory)
+					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory, and each name folder must be the gi number of fasta that contain)
 						echo "sigma done"
 					;;
 					"CONSTRAINS")
