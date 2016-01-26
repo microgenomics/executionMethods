@@ -67,7 +67,6 @@ do
 		echo "--PSfilterdb pathoscope filter databases prefix"
 		echo "--dbmarker is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag (full path)"
 		echo "--sigmacfile is the configuration file used by sigma, if in your cfile, SIGMA is in the METHODS flag, you must provide the sigmacfile"
-		echo "to apply Perdonazo method, you must especify in the config file the parameter ABSENT=yes, the script automatically calculate corresponding data"
 		
 		echo -e "\ndboption:"
 		echo "--dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index)"
@@ -111,14 +110,8 @@ do
 					"READSIZE")
 						READSIZE=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
-					"ABSENT")
-						ABSENT=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
 					"METHOD")
 						METHOD=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
-					"tipermanent")
-						tipermanent=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
 					"CORES")
 						CORES=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
@@ -161,7 +154,7 @@ do
 		if [ $((rfileband)) -eq 1 ]; then
 
 			#first, we check if exist the pair end call.
-			RFILE=$i
+			IRFILE=$i
 			rfileband=0
 			READS=`echo "$i" |awk 'BEGIN{FS=","}{if($2 == ""){print "single"}else{print "paired"}}'`
 		fi
@@ -345,8 +338,8 @@ function fastaunlockFunction {
 }
 function readstoFastqFunction {
 			if [ "$READS" == "paired" ]; then
-			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
+			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
@@ -360,7 +353,6 @@ function readstoFastqFunction {
 							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
 							wait $!
 						fi
-
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
@@ -384,13 +376,13 @@ function readstoFastqFunction {
 			fastalockFunction
 			if [ -f fasta_to_fastq.pl ]; then
 				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
-					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+					perl ps_fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
 					RFILE=$SINGLE.fastq
 				fi
 			else
 				fasta_to_fastqFunction
 				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
-					perl ps_fasta_to_fastq.pl $RFILE > $TMPNAME/$SINGLE.fastq
+					perl ps_fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
 					RFILE=$SINGLE.fastq
 				fi
 			fi
@@ -400,7 +392,7 @@ function readstoFastqFunction {
 function pathoscopeFunction {
 
 		echo "wake up pathoscope"
-		FILE=$RFILE
+		FILE=$IRFILE
 
 		readstoFastqFunction
 
@@ -432,14 +424,14 @@ function pathoscopeFunction {
 		cd ..
 
 		TOCLEAN=$RFILE
-		RFILE=$FILE
+		IRFILE=$FILE
 
  
 }
 
 function metaphlanFunction {
 
-		FILE=$RFILE
+		FILE=$IRFILE
 
 		echo "wake up metaphlan"
 		readstoFastqFunction
@@ -464,15 +456,15 @@ function metaphlanFunction {
 		#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 		TOCLEAN=$RFILE
-		RFILE=$FILE
+		IRFILE=$FILE
 
 }
 
 function metamixFunction {
 
 		if [ "$READS" == "paired" ]; then
-			PAIREND1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-			PAIREND2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
+			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
@@ -531,15 +523,15 @@ function metamixFunction {
 				exit
 			fi
 		else
-			SINGLE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
+			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 
 			if mkdir $TMPNAME/metamix_$SINGLE; then #we make new folder because is easier to clean after execution
-				cp $RFILE $TMPNAME/metamix_$SINGLE/$SINGLE
+				cp $IRFILE $TMPNAME/metamix_$SINGLE/$SINGLE
 			else
 				echo "Metamix: cleaning previous run"
 				rm -r $TMPNAME/metamix_$SINGLE
 				mkdir $TMPNAME/metamix_$SINGLE
-				cp $RFILE $TMPNAME/metamix_$SINGLE/$SINGLE
+				cp $IRFILE $TMPNAME/metamix_$SINGLE/$SINGLE
 			fi
 
 			cd $TMPNAME
@@ -565,7 +557,8 @@ function metamixFunction {
 }
 
 function sigmaFunction {
-											
+
+	echo "wake up sigma"
 	cd $TMPNAME
 
 	#if [ -f /tmp/corescontrol ];then
@@ -597,7 +590,10 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w .
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w . &
+	lastpid=$!
+	pids[${i}]=$lastpid
+	i=$((i+1))
 
 	cd ..
 	cd ..
@@ -606,7 +602,20 @@ function sigmaFunction {
 }
 
 function constrainsFunction {
-	python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o cs_$RFILE -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+
+	CSTOCLEAN=constrains_$RFILE
+	cd $TMPNAME
+	#if [ -f /tmp/corescontrol ];then
+	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	#else
+	#	i=0
+	#fi	
+	coresControlFunction
+	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
+	python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o $CSTOCLEAN -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+	lastpid=$!
+	pids[${i}]=$lastpid
+	i=$((i+1))
 }
 
 function pathoscopeFunction2 {
@@ -641,6 +650,7 @@ function metamixFunction2 {
 	cd $TMPNAME
 	trys=10
 	metamixCodeFunction
+	echo "execute metamix R function"
 
 		if [ "$READS" == "paired" ]; then
 			cd metamix_$P1.$P2
@@ -685,20 +695,34 @@ function metamixFunction2 {
 			echo "error: Metamix execution not finished in $foldererror"
 		fi
 
-	cd ..
+		cd ..
+
 
     #echo "$i $lastpid 1" >> /tmp/corescontrol
 
 }
+function sigmaFunction2 {
+	cd $TMPNAME 
+	cd $SGTOCLEAN
 
+	echo "executing sigma wrapper module"	
+	${SIGMAHOME}/./sigma -c $SIGMACFILE -t $THREADS -w . &
+
+	lastpid=$!
+	pids[${i}]=$lastpid
+	i=$((i+1))
+	cd ..
+	cd ..
+
+}
 function sigmaCfileFunction {
 
 	if [ "$READS" == "paired" ]; then
-		F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
+		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
 		SIZE=`tail -n1 $F1 |wc |awk '{print $3}'`
-		F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
+		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
 		F1=`echo "$F1.fastq"`
-		F2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
+		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
 		F2=`echo "$F2.fastq"`
 		
 		readstoFastqFunction
@@ -732,10 +756,10 @@ Minimum_Average_Coverage_Depth=3
 
 
 	else
-		SIZE=`tail -n1 $RFILE |wc |awk '{print $3}'`
+		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
 		readstoFastqFunction
-		RFILE=`echo "$RFILE" |rev |cut -d "/" -f 1 |rev`
-		RFILE=`echo "$RFILE.fastq"`
+		RFILE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+		RFILE=`echo "$IRFILE.fastq"`
 		cd $TMPNAME	
 		FASTQFOLDER=`pwd`
 		cd ..
@@ -764,7 +788,7 @@ Minimum_Average_Coverage_Depth=3
 	fi
 
 }
-function cleanFunction {
+function lastStepFunction {
 
 	rm -f $TMPNAME/fasta_to_fastq.pl
 
@@ -784,17 +808,24 @@ function cleanFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		rm -f MetaMix.R
-		if [ "$READS" == "paired" ]; then
-			rm -rf $TMPNAME/metamix_$P1.$P2
-		else
-			rm -rf $TMPNAME/metamix_$SINGLE
-		fi
+		rm -f $TMPNAME/MetaMix.R
+		#if [ "$READS" == "paired" ]; then
+		#	rm -rf $TMPNAME/metamix_$P1.$P2
+		#else
+		#	rm -rf $TMPNAME/metamix_$SINGLE
+		#fi
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		rm -rf $SGTOCLEAN
+		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
+		rm -rf $TMPNAME/$SGTOCLEAN
 	fi
+
+	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
+		mv $TMPNAME/$CSTOCLEAN/results/Intra_sp_rel_ab.profiles $CSTOCLEAN.profiles
+		rm -rf $TMPNAME/$CSTOCLEAN
+	fi
+
 	echo "Done :D"
 }
 
@@ -802,7 +833,7 @@ function criticalvariablesFunction {
 	pass=0
 	errormessage=""
 
-	if [ "$RFILE" == "" ];then
+	if [ "$IRFILE" == "" ];then
 		errormessage=`echo -e "$errormessage You must provide a read file\n"`
 		pass=$((pass+1))
 	fi
@@ -1009,6 +1040,8 @@ criticalvariablesFunction
 			do
 			   wait $pid
 			done
+			unset $pids
+			declare -A pids
 			i=0
 			for g in $METHOD
 			do
@@ -1024,7 +1057,7 @@ criticalvariablesFunction
 					;;
 					"SIGMA")
 					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory, and each name folder must be the gi number of fasta that contain)
-						echo "sigma done"
+						sigmaFunction2
 					;;
 					"CONSTRAINS")
 						constrainsFunction
@@ -1035,8 +1068,8 @@ criticalvariablesFunction
 			do
 			   wait $pid
 			done
-			cleanFunction
-
+			unset $pids
+			lastStepFunction
 else
 	echo "Invalid or Missing Parameters, print --help to see the options"
 	echo "Usage: bash executionMethods --cfile [config file] --rfile [readsfile] -[dboption] [databases]"

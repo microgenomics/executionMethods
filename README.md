@@ -3,12 +3,13 @@
 #executionMethods
 ----------------
 
-executionMethods Module is the second module from SEPA (Simulation, Execution, Parse and Analysis,  a multi pipe to test pathogen software detection), that take the softwares pathoscope, metaphlan, metamix, sigma and constrains, and execute them in an independent process (can be execute multiple times)
+executionMethods Module is the second module from SEPA (Simulation, Execution, Parse and Analysis,  a multi pipe to test pathogen software detection), that take the softwares pathoscope, metaphlan, metamix, sigma and constrains, and execute them in an independent process that can be execute multiple times having parallel works (don't worry about your cores, this module have the intelligence to coordinate cpu usage). 
 
 ##Requirements
 
-* Bash version 4 (comes with Linux and MacOSX)
-* Pathogen detection software installed
+* Bash >= v4 (comes with Linux and MacOSX)
+* Perl >= v5
+* Pathogen detection software installed (works on: Pathoscope2, Metaphlan2, Sigma v1.0.2, Metamix v0.2, Constrains v0.1.0, Kraken 0.10.5).
 
 ##Usage
 
@@ -25,15 +26,13 @@ Where:
 * --dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index).
 * --dbM2 metaphlan database folder and prefix: e.g /home/user/dbmarkers_bt2/targetdb (bowtie2 index).
 * --dbMX metamix database folder and prefix: e.g /home/user/dbmetamix_nhi/targetdb (blast index).
-* --dbCS constrains database folder.
-
-#####Note: you must provide sigma database folder in the sigma configuration file.
 
 Additionally, depending of the case, you have to use some of this flags:
 
 * --PSfilterdb: pathoscope filter databases prefix (use just the prefix name and make sure that filter db is in the same folder that pathoscope database (--dbPS).
 * --dbmarker: is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag and if you use metaphlan, provide pkl file with full path.
-* --sigmacfile: is the configuration file used by sigma, if SIGMA is in the METHODS flag (in configuration file [cfile]), you must provide the full path to sigma configuration file.
+* --sigmacfile: is the configuration file used by sigma, if SIGMA is in the METHODS flag (in configuration file [--cfile]) or if you don't have a sigma config file, you just give the flag --dbSG and the module do the rest.
+* --dbSG: refer to folder of the database in sigma format (each fasta in a unique folder), and due to this implementation, each subfolder would be called as gi number from fasta that contain.
 
 ##Configuration file
 This file contain several parameters to steer the script (most of them just serves in no local mode), the minimal parameters are:
@@ -43,16 +42,11 @@ This file contain several parameters to steer the script (most of them just serv
 
 	CORES=3
 	THREADS=20
-	ABSENT=no
 	METHOD=PATHOSCOPE,METAPHLAN
-	PATHOSCOPEHOME=/Users/castrolab01/pathoscope
-	METAPHLAN2HOME=/Users/castrolab01/Desktop/metaphlan2
+	PATHOSCOPEHOME=/home/patriciocarlos/softwares/pathoscope
+	METAPHLAN2HOME=/home/patriciocarlos/softwares/metaphlan2
 
-	#ABSENT is a flag used to specify whether you are using a database where you know a target microbe is present or not. Default is no.
-	#if flag is set to "yes", then you need to specify a NCBI's taxonomy ID for the taxon that is kept constant using tipermanent
-	#tipermanent=478435
-	#ABUNDANCE specify how many reads mapped or should map to the database. This flag will convert raw read counts to proportions
-	#ABUNDANCE=100000
+	#CORES is the flag
 	#METHOD contain the software results that you want parse
 
 ##Examples
@@ -69,26 +63,43 @@ if you have a lot of reads, you can execute executeMethods multiple times in ind
 
 	for reads in `cat read_list.txt`
 	do
-		bash executionMethods.bash --cfile config.conf --rfile $reads --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B --dbM2 /Users/castrolab01/Desktop/metaphlan2/makingDBmarkers/indexedbowtie2/dbBmarkers --dbmarker /Users/castrolab01/Desktop/metaphlan2/test/dbBmarkers.pkl &
+		bash executionMethods.bash --cfile config.conf --rfile $reads --dbPS SEPA/DB/BowtieIndex/db_B --dbM2 SEPA/DB/BowtieIndex/dbBmarkers --dbmarker SEPA/DB/BowtieIndex/dbBmarkers.pkl &
 	done
 	
-here we executed the script on two softwares (pathoscope and metaphlan), and every loop will execute the software on the input read ($reads) taken from a list of reads.
+here we executed the script on two softwares (pathoscope and metaphlan), and every loop will execute the softwares on the input read ($reads) taken from a list of reads, in parallel process.
 
 ##Output
 
-executionMethods just move the files that are made by the softwares, executionMethods put the same name of reads input in output files with a little difference adding pre and subfix:
+executionMethods just move the files that are made by the softwares, next, put the same name of reads input in output files with a little difference adding pre and subfix:
 
 * Pathoscope: pathoscope\_readname_sam.tsv
 * Metaphlan: metaphlan\_readname.dat
 * Metamix: metamix\_readname.tsv
-* Sigma: sigma_out.gvector
-* Constrains: not aviable yet
+* Sigma: sigma\_readname.gvector
+* Constrains: constrains\_readname.profiles
+* Kraken: not yet
 
 ##Warnings
-* Metamix: If you only use Metamix, ignore this warning. Some times metamix fails in last step and output file is not generated, so, this module implements a tolerance for ten execution (automatically re-runs until ten times if execution  fails, but there is not warranty that work after all runs), due to this, is not possible execute Metamix in an independent process making a query waiting if your config file is like this:
+* Your computer may freeze due to the high compute if you run a lot of execution in parallel (we recommend execute this module in a cluster).
+* Metamix: **If you only use Metamix, ignore this warning.** Some times metamix fails in last step and output file is not generated, so, this module implements a tolerance for ten execution (automatically re-runs until ten times if execution  fails, but there is not warranty that work after all runs), due to this, is not possible execute Metamix in an independent process making a query waiting if your config file is something like this:
 
-		METHOD=METAMIX,PATHOSCOPE,METAPHLAN
-to solve this problem, move METAMIX to the final line, like this:
+		METHOD=METAMIX,CONSTRAINS,PATHOSCOPE,METAPHLAN
+to solve this problem there are two ways: 
+* 1) Move METAMIX to the final line, like this:
 		
-		METHOD=PATHOSCOPE,METAPHLAN,METAMIX
+		METHOD=CONSTRAINS,PATHOSCOPE,METAPHLAN,METAMIX
 this will execute pathoscope in an independent process, next metaphlan in an independent process and finally metamix in the main process (not independent), but is the last execution so this will not generate a query waiting.
+
+* 2) Execute metamix in other execution manipulation, like this:
+
+		bash executionMethods.bash --cfile config1.conf ...etc &
+		bash executionMethods.bash --cfile config2.conf ...etc &
+		
+	where config1.conf have:
+			
+		METHOD=CONSTRAINS,PATHOSCOPE,METAPHLAN
+	and config2.conf have
+	
+		METHOD=METAMIX
+
+	"&" symbol will execute the script in parallel process
