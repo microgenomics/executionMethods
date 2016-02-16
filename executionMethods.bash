@@ -59,7 +59,7 @@ do
 	;;
 	"--help")
 		echo "#########################################################################################"
-		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[dboption] [databases]"
+		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[DB options] [databases]"
 		echo -e "\nOptions aviable:"
 		echo "--cfile configuration file check README for more information"
 		echo "--rfile reads file, if you have paired end reads, use: --rfile readfile1.fa,readfile2.fa"
@@ -68,11 +68,11 @@ do
 		echo "--dbmarker is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag (full path)"
 		echo "--sigmacfile is the configuration file used by sigma, if in your cfile, SIGMA is in the METHODS flag, you must provide the sigmacfile"
 		
-		echo -e "\ndboption:"
+		echo -e "\nDB options:"
 		echo "--dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index)"
 		echo "--dbM2 metaphlan database folder and prefix: e.g /home/user/dbmarkers_bt2/targetdb (bowtie2 index)"
 		echo "--dbMX metamix database folder and prefix: e.g /home/user/dbmetamix_nhi/targetdb (blast index)"
-		echo "..MXnames metamix names translation, is a file with format 'ti name'"
+		echo "--MXnames metamix names translation, is a file with format 'ti name'"
 		echo "--dbCS constrains database folder"
 		echo "note: you must provide sigma database folder in the sigma config file"
 		echo -e "\n#########################################################################################"
@@ -93,7 +93,6 @@ do
 				case $Pname in
 					"GENOMESIZEBALANCE")
 						GENOMESIZEBALANCE=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
-						#echo "${parameters[$i]}"								
 					;;
 					"COMMUNITYCOMPLEX")
 						COMMUNITYCOMPLEX=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
@@ -601,23 +600,6 @@ function sigmaFunction {
 
 }
 
-function constrainsFunction {
-
-	CSTOCLEAN=constrains_$RFILE
-	cd $TMPNAME
-	#if [ -f /tmp/corescontrol ];then
-	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	#else
-	#	i=0
-	#fi	
-	coresControlFunction
-	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
-	python ${CONSTRAINSHOME}/ConStrains.py -c $CSFILE -o $CSTOCLEAN -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
-	lastpid=$!
-	pids[${i}]=$lastpid
-	i=$((i+1))
-}
-
 function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
@@ -662,7 +644,7 @@ function metamixFunction2 {
 			while [ $((trys)) -ge 1 ]
 			do
 				if Rscript ../MetaMix.R blastOut$P1.$P2.tab $MXNAMES ;then
-					#mv presentSpecies_assignedReads.tsv ../../$BACKUPNAME_assignedReads.tsv
+					mv presentSpecies_assignedReads.tsv ../../$BACKUPNAME.assignedReads.tsv
 					break
 					echo "metamix execution successful"
 				else
@@ -715,6 +697,39 @@ function sigmaFunction2 {
 	cd ..
 
 }
+
+function constrainsFunction {
+
+	CSTOCLEAN=constrains_$RFILE
+	cd $TMPNAME
+	#if [ -f /tmp/corescontrol ];then
+	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
+	#else
+	#	i=0
+	#fi	
+	coresControlFunction
+	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
+
+	if [ "$READS" == "paired" ]; then
+		F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
+		F2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+
+		echo "sample: $RFILE 
+		fq1: $F1
+		fq2: $F2
+		metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+	else
+		echo "sample: $RFILE 
+		fq: $RFILE
+		metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+	fi
+
+	python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+	lastpid=$!
+	pids[${i}]=$lastpid
+	i=$((i+1))
+}
+
 function sigmaCfileFunction {
 
 	if [ "$READS" == "paired" ]; then
@@ -808,12 +823,12 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		rm -f $TMPNAME/MetaMix.R
-		#if [ "$READS" == "paired" ]; then
-		#	rm -rf $TMPNAME/metamix_$P1.$P2
-		#else
-		#	rm -rf $TMPNAME/metamix_$SINGLE
-		#fi
+		#rm -f $TMPNAME/MetaMix.R
+		if [ "$READS" == "paired" ]; then
+			rm -rf $TMPNAME/metamix_$P1.$P2
+		else
+			rm -rf $TMPNAME/metamix_$SINGLE
+		fi
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
@@ -824,6 +839,7 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
 		mv $TMPNAME/$CSTOCLEAN/results/Intra_sp_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
+		rm -rf $TMPNAME/cs_config_$RFILE.conf
 	fi
 
 	echo "Done :D"
@@ -846,7 +862,7 @@ function criticalvariablesFunction {
 
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
-			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line\n"`
+			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line (--dbM2 and --dbmarker)\n"`
 			pass=$((pass+1))
 		fi
 	fi
@@ -854,7 +870,7 @@ function criticalvariablesFunction {
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 
 		if [ "$DBPS" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database (bowtie2 index), for pathoscope\n"`
+			errormessage=`echo -e "$errormessage You must provide a database (bowtie2 index), for pathoscope (--dbPS)\n"`
 			pass=$((pass+1))
 		fi
 	fi
@@ -862,7 +878,12 @@ function criticalvariablesFunction {
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 
 		if [ "$DBMX" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database (blast index), for metamix\n"`
+			errormessage=`echo -e "$errormessage You must provide a database (blast index), for metamix (--dbMX)\n"`
+			pass=$((pass+1))
+		fi
+
+		if [ "$MXNAMES" == "" ];then
+			errormessage=`echo -e "$errormessage You must provide the names of your blast database (--MXnames), this file have ti - name format (183214 Foo)\n"`
 			pass=$((pass+1))
 		fi
 
@@ -1040,7 +1061,7 @@ criticalvariablesFunction
 			do
 			   wait $pid
 			done
-			unset $pids
+			unset pids
 			declare -A pids
 			i=0
 			for g in $METHOD
@@ -1053,7 +1074,7 @@ criticalvariablesFunction
 						echo "metaphlan done"
 					;;
 					"METAMIX")
-						metamixFunction2 #bottleneck not easy solution
+						metamixFunction2 #bottleneck, put metamix in the last of methods e.g. METHODS=SIGMA,CONSTRAINS,METAMIX
 					;;
 					"SIGMA")
 					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory, and each name folder must be the gi number of fasta that contain)
@@ -1068,7 +1089,7 @@ criticalvariablesFunction
 			do
 			   wait $pid
 			done
-			unset $pids
+			unset pids
 			lastStepFunction
 else
 	echo "Invalid or Missing Parameters, print --help to see the options"
