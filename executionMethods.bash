@@ -1,6 +1,5 @@
 #make sure you have installed correctly the patogen detection software 
 set -ex
-export LANG="en_US.UTF-8"
 
 cfileband=0
 statusband=0
@@ -700,34 +699,46 @@ function sigmaFunction2 {
 
 function constrainsFunction {
 
-	CSTOCLEAN=constrains_$RFILE
-	cd $TMPNAME
+
 	#if [ -f /tmp/corescontrol ];then
 	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 	#else
 	#	i=0
-	#fi	
+	#fi
+	readstoFastqFunction
+
+	cd $TMPNAME
 	coresControlFunction
+
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
+	if [ -f "../metaphlan_$RFILE.dat" ];then
+		CSERROR=0
+		CSTOCLEAN=constrains_$RFILE
 
-	if [ "$READS" == "paired" ]; then
-		F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-		F2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
-
-		echo "sample: $RFILE 
-		fq1: $F1
-		fq2: $F2
-		metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+		if [ "$READS" == "paired" ]; then
+			F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
+			F2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			echo "sample: $RFILE
+			fq1: $F1
+			fq2: $F2
+			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+		else
+			echo "sample: $RFILE 
+			fq: $RFILE
+			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+			CSTOCLEAN=constrains_$RFILE
+		fi
+			python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+			lastpid=$!
+			pids[${i}]=$lastpid
+			i=$((i+1))
 	else
-		echo "sample: $RFILE 
-		fq: $RFILE
-		metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+			echo "Constrains: no metaphlan2 file found, impossible continue"
+			CSERROR=1
 	fi
+	cd ..
 
-	python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
-	lastpid=$!
-	pids[${i}]=$lastpid
-	i=$((i+1))
+			
 }
 
 function sigmaCfileFunction {
@@ -836,8 +847,8 @@ function lastStepFunction {
 		rm -rf $TMPNAME/$SGTOCLEAN
 	fi
 
-	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
-		mv $TMPNAME/$CSTOCLEAN/results/Intra_sp_rel_ab.profiles $CSTOCLEAN.profiles
+	if [[ "$METHOD" =~ "CONSTRAINS" ]] && [ "$CSERROR" -eq 0 ]; then
+		mv $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
 	fi
@@ -893,12 +904,12 @@ function criticalvariablesFunction {
 		fi
 	fi
 
-	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
-		if [[ ! "$METHOD" =~ "METAPHLAN" ]]; then
-			errormessage=`echo -e "$errormessage METAPHLAN is needed to CONSTRAINS work\n"`
-			pass=$((pass+1))
-		fi
-	fi
+#	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
+#		if [[ ! "$METHOD" =~ "METAPHLAN" ]]; then
+#			errormessage=`echo -e "$errormessage METAPHLAN is needed to CONSTRAINS work\n"`
+#			pass=$((pass+1))
+#		fi
+#	fi
 
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 
