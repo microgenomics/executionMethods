@@ -7,9 +7,9 @@ executionMethods Module is the second module from SEPA (Simulation, Execution, P
 
 ##Requirements
 
-* Bash >= v4 (comes with Linux and MacOSX)
+* Bash >= v4 (tested in Linux and MacOSX)
 * Perl >= v5
-* Pathogen detection software installed (works on: Pathoscope2, Metaphlan2, Sigma v1.0.2, Metamix v0.2, Constrains v0.1.0, Kraken 0.10.5).
+* Pathogen detection software installed (works on: Pathoscope2, Metaphlan2, Sigma v1.0.2, Metamix v0.2, Constrains v0.1.0).
 
 ##Usage
 
@@ -26,13 +26,16 @@ Where:
 * --dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index).
 * --dbM2 metaphlan database folder and prefix: e.g /home/user/dbmarkers_bt2/targetdb (bowtie2 index).
 * --dbMX metamix database folder and prefix: e.g /home/user/dbmetamix_nhi/targetdb (blast index).
+* --MXnames is a file with tax id and names in format "ti | | sientific name |	" neccesary for metamix to translate results
+* --dbSG: refer to folder of the database in sigma format (each fasta in a unique folder), and due to this implementation, each subfolder would be called as gi number from fasta that contain.
 
 Additionally, depending of the case, you have to use some of this flags:
 
 * --PSfilterdb: pathoscope filter databases prefix (use just the prefix name and make sure that filter db is in the same folder that pathoscope database (--dbPS).
 * --dbmarker: is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag and if you use metaphlan, provide pkl file with full path.
 * --sigmacfile: is the configuration file used by sigma, if SIGMA is in the METHODS flag (in configuration file [--cfile]) or if you don't have a sigma config file, you just give the flag --dbSG and the module do the rest.
-* --dbSG: refer to folder of the database in sigma format (each fasta in a unique folder), and due to this implementation, each subfolder would be called as gi number from fasta that contain.
+* --csfile constrains file you can give the file to constrains or leave executionMethods create it for you based on the results for metaphlan.
+
 
 ##Configuration file
 This file contain several parameters to steer the script (most of them just serves in no local mode), the minimal parameters are:
