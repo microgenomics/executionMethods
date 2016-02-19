@@ -1,6 +1,6 @@
 #make sure you have installed correctly the patogen detection software 
 set -ex
-
+exit
 cfileband=0
 statusband=0
 rfileband=0
@@ -72,6 +72,7 @@ do
 		echo "--dbM2 metaphlan database folder and prefix: e.g /home/user/dbmarkers_bt2/targetdb (bowtie2 index)"
 		echo "--dbMX metamix database folder and prefix: e.g /home/user/dbmetamix_nhi/targetdb (blast index)"
 		echo "--MXnames metamix names translation, is a file with format 'ti name'"
+		echo "--dbSG sigma database folder (master directory)"
 		echo "--dbCS constrains database folder"
 		echo "note: you must provide sigma database folder in the sigma config file"
 		echo -e "\n#########################################################################################"
@@ -164,6 +165,8 @@ do
 				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
 				dbpsband=0
 				statusband=$((statusband+1))
+				cd $INITIALPATH
+
 			else
 					echo "$i file no exist"
 					exit
@@ -179,6 +182,8 @@ do
 				dbpath=`pwd`
 				DBM2=`echo "$dbpath/$DBM2"`
 				dbm2band=0
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
@@ -194,6 +199,8 @@ do
 				dbpath=`pwd`
 				DBMX=`echo "$dbpath/$DBMX"`
 				dbmxband=0
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
@@ -208,6 +215,8 @@ do
 				dbpath=`pwd`
 				MXNAMES=`echo "$dbpath/$MXNAMES"`
 				mxnamesband=0
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
@@ -223,6 +232,8 @@ do
 				dbpath=`pwd`
 				PSFDB=`echo "$dbpath/$PSFDB"`
 				psfilterdb=0
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
@@ -237,6 +248,8 @@ do
 				dbpath=`pwd`
 				DBMARKER=`echo "$dbpath/$DBMARKER"`
 				dbmarkerband=0
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
@@ -251,6 +264,8 @@ do
 				dbpath=`pwd`
 				SIGMACFILE=`echo "$dbpath/$SIGMACFILE"`
 				sigmacfileband=0
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
@@ -260,8 +275,11 @@ do
 
 		if [ $((dbsgband)) -eq 1 ]; then
 			if [ -d $i ]; then
-				DBSG=$i
+				cd $i
+				DBSG=`pwd`
 				dbsgband=0
+				cd $INITIALPATH
+
 			else
 				echo "$i master directory no exist"
 				exit
@@ -277,6 +295,8 @@ do
 				dbpath=`pwd`
 				CSFILE=`echo "$dbpath/$CSFILE"`
 				csfileband=1
+				cd $INITIALPATH
+
 			else
 				echo "$i file no exist"
 				exit
