@@ -13,6 +13,7 @@ dbmarkerband=0
 sigmacfileband=0
 csfileband=0
 dbsgband=0
+priorband=0
 PSFDB=""
 TOCLEAN=""
 SIGMACFILE=""
@@ -56,6 +57,9 @@ do
 	"--csfile")
 		csfileband=1
 	;;
+	"--tprior")
+		priorband=1
+	;;
 	"--help")
 		echo "#########################################################################################"
 		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[DB options] [databases]"
@@ -66,6 +70,7 @@ do
 		echo "--PSfilterdb pathoscope filter databases prefix"
 		echo "--dbmarker is the pkl file used by metaphlan, if you don't use metaphlan, don't use this flag (full path)"
 		echo "--sigmacfile is the configuration file used by sigma, if in your cfile, SIGMA is in the METHODS flag, you must provide the sigmacfile"
+		echo "--tprior thetaPrior option of pathoscope"
 		
 		echo -e "\nDB options:"
 		echo "--dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index)"
@@ -164,8 +169,8 @@ do
 				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
 				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
 				cd $IXDIR
-				dbpath=`pwd`
-				DBPS=`echo "$dbpath/$DBPS"`
+				#dbpath=`pwd`
+				#DBPS=`echo "$dbpath/$DBPS"` #pathoscope use directory and name separately
 				dbpsband=0
 				statusband=$((statusband+1))
 				cd $INITIALPATH
@@ -304,6 +309,12 @@ do
 				echo "$i file no exist"
 				exit
 			fi
+		fi
+
+		if [ $((priorband)) -eq 1 ]; then
+				PRIOR=$i
+				priorband=0
+
 		fi
 
 	;;
@@ -632,8 +643,12 @@ function pathoscopeFunction2 {
 	#	i=0
 	#fi
 	coresControlFunction	
+	if [ "$PRIOR" == "" ];then
+		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE &
 
-	python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $prior &
+	else
+		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR &
+	fi
 	lastpid=$!
 	pids[${i}]=$lastpid
 	i=$((i+1))
