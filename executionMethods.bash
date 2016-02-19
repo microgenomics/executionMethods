@@ -1,6 +1,6 @@
 #make sure you have installed correctly the patogen detection software 
 set -ex
-exit
+
 cfileband=0
 statusband=0
 rfileband=0
@@ -163,6 +163,9 @@ do
 			if [ $((ok)) -ge 1 ]; then
 				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
 				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $IXDIR
+				dbpath=`pwd`
+				DBPS=`echo "$dbpath/$DBPS"`
 				dbpsband=0
 				statusband=$((statusband+1))
 				cd $INITIALPATH
