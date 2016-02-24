@@ -381,16 +381,14 @@ function readstoFastqFunction {
 					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait $!
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 						fi
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait $!
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 						fi
 					fi
 					fastaunlockFunction
@@ -408,13 +406,13 @@ function readstoFastqFunction {
 			fastalockFunction
 			if [ -f fasta_to_fastq.pl ]; then
 				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
-					perl ps_fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
+					perl fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
 					RFILE=$SINGLE.fastq
 				fi
 			else
 				fasta_to_fastqFunction
 				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
-					perl ps_fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
+					perl fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
 					RFILE=$SINGLE.fastq
 				fi
 			fi
@@ -682,8 +680,9 @@ function metamixFunction2 {
 			do
 				if Rscript ../MetaMix.R blastOut$P1.$P2.tab $MXNAMES ;then
 					mv presentSpecies_assignedReads.tsv ../../$BACKUPNAME.assignedReads.tsv
-					break
 					echo "metamix execution successful"
+					break
+
 				else
 					trys=$((trys-1))
 					echo "metamix execution failed, ($trys retryings left)"
@@ -698,8 +697,8 @@ function metamixFunction2 {
 			do
 				if Rscript ../MetaMix.R blastOut$SINGLE.tab $MXNAMES ;then
 					mv presentSpecies_assignedReads.tsv ../../metamix_$SINGLE.tsv
-					break
 					echo "metamix execution successful"
+					break
 				else
 					trys=$((trys-1))
 					echo "metamix execution failed, ($trys retryings left)"
