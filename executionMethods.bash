@@ -167,8 +167,8 @@ do
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				PSIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $PSIXDIR
 				#dbpath=`pwd`
 				#DBPS=`echo "$dbpath/$DBPS"` #pathoscope use directory and name separately
 				dbpsband=0
@@ -185,8 +185,8 @@ do
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				DBM2=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				M2IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $M2IXDIR
 				dbpath=`pwd`
 				DBM2=`echo "$dbpath/$DBM2"`
 				dbm2band=0
@@ -202,8 +202,8 @@ do
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				DBMX=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				MXIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $MXIXDIR
 				dbpath=`pwd`
 				DBMX=`echo "$dbpath/$DBMX"`
 				dbmxband=0
@@ -218,8 +218,8 @@ do
 		if [ $((mxnamesband)) -eq 1 ]; then
 			if [ -f "$i" ]; then
 				MXNAMES=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				MXNIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $MXNIXDIR
 				dbpath=`pwd`
 				MXNAMES=`echo "$dbpath/$MXNAMES"`
 				mxnamesband=0
@@ -235,8 +235,8 @@ do
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				PSFDB=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				PSFIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $PSFIXDIR
 				dbpath=`pwd`
 				PSFDB=`echo "$dbpath/$PSFDB"`
 				psfilterdb=0
@@ -251,8 +251,8 @@ do
 		if [ $((dbmarkerband)) -eq 1 ]; then
 			if [ -f $i ]; then
 				DBMARKER=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				M2MIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $M2MIXDIR
 				dbpath=`pwd`
 				DBMARKER=`echo "$dbpath/$DBMARKER"`
 				dbmarkerband=0
@@ -267,8 +267,8 @@ do
 		if [ $((sigmacfileband)) -eq 1 ]; then
 			if [ -f $i ]; then
 				SIGMACFILE=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				SGIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $SGIXDIR
 				dbpath=`pwd`
 				SIGMACFILE=`echo "$dbpath/$SIGMACFILE"`
 				sigmacfileband=0
@@ -298,8 +298,8 @@ do
 		if [ $((csfileband)) -eq 1 ]; then
 			if [ -f $i ]; then
 				CSFILE=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				IXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $IXDIR
+				CSIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $CSIXDIR
 				dbpath=`pwd`
 				CSFILE=`echo "$dbpath/$CSFILE"`
 				csfileband=1
@@ -381,14 +381,16 @@ function readstoFastqFunction {
 					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
+							wait $!
 						fi
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
+							wait $!
 						fi
 					fi
 					fastaunlockFunction
@@ -439,11 +441,11 @@ function pathoscopeFunction {
 
 
 		if [ "$PSFDB" == "" ];then
-			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
+			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		else
-			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $IXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
+			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
@@ -474,6 +476,9 @@ function metaphlanFunction {
 		#fi	
 		coresControlFunction
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+		if [ -f "bowtieout$RFILE.bz2" ];then
+			rm -f bowtieout$RFILE.bz2
+		fi
 
 		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat &
 		lastpid=$!
@@ -492,6 +497,7 @@ function metaphlanFunction {
 
 function metamixFunction {
 
+		echo "wake up metamix"
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
@@ -736,7 +742,7 @@ function sigmaFunction2 {
 
 function constrainsFunction {
 
-
+	echo "wake up constrains"
 	#if [ -f /tmp/corescontrol ];then
 	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
 	#else
@@ -1073,13 +1079,14 @@ function metamixCodeFunction {
 if [ $((statusband)) -ge 1 ]; then
 cd $INITIALPATH
 #Check some parameters before do something
-criticalvariablesFunction
+	if [ -d "$TMPNAME" ]; then
+		echo "$TMPNAME exist, working in."
+	else
+		mkdir $TMPNAME
+	fi
 
-			if [ -d "$TMPNAME" ]; then
-				echo "$TMPNAME exist, working in."
-			else
-				mkdir $TMPNAME
-			fi
+	criticalvariablesFunction
+
 
 			for g in $METHOD
 			do
