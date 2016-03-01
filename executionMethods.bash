@@ -324,11 +324,12 @@ done
 #################################################
 declare -A pids
 i=0
+maxexe=5
 #################################################
 lastpid=0
 function coresControlFunction {
 if mkdir $INITIALPATH/lock; then
-	if [ $((i)) -ge 5 ]; then
+	if [ $((i)) -ge $((maxexe)) ]; then
 
 			for pid in "${pids[@]}"
 			do
@@ -391,22 +392,16 @@ function readstoFastqFunction {
 					fastalockFunction
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
-							wait1=$!
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait2=$!
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 						fi
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
-							wait1=$!
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait2=$!
+							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 						fi
 					fi
-					wait $wait1
-					wait $wait2
 					fastaunlockFunction
 
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
@@ -643,7 +638,7 @@ function sigmaFunction {
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w . &
 	lastpid=$!
 	pids[${i}]=$lastpid
-	i=$((i+1))
+	i=$maxexe
 
 	cd ..
 	cd ..
