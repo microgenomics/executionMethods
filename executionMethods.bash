@@ -1,5 +1,5 @@
 #make sure you have installed correctly the patogen detection software 
-set -ex
+set -e
 
 cfileband=0
 statusband=0
@@ -324,14 +324,24 @@ done
 #################################################
 declare -A pids
 i=0
-maxexe=5
 #################################################
 lastpid=0
 function coresControlFunction {
-if mkdir /tmp/lock; then
-	if [ $((i)) -ge $((maxexe)) ]; then
-		wait $lastpid
-		i=$((i-1))
+if mkdir $INITIALPATH/lock; then
+	if [ $((i)) -ge 5 ]; then
+
+			for pid in "${pids[@]}"
+			do
+			   wait $pid
+			   i=$((i-1))
+			   for j in `seq 0 1 4`
+			   do
+			   		j2=$((j+1))
+					pids[${j}]=${pids[${j2}]}
+			   done
+			   #unset pids[${j2}]
+			   break
+			done
 
 #		band="foo"
 #		while [ "$band" != "" ];
@@ -350,9 +360,9 @@ if mkdir /tmp/lock; then
 #			fi
 #		done
 	fi
-	rm -r /tmp/lock
+	rm -rf $INITIALPATH/lock
 else
-	sleep 10
+	sleep 60
 	coresControlFunction
 fi
 }
@@ -360,12 +370,12 @@ function fastalockFunction {
 	if mkdir fastalock; then
 		echo "fastalock created"
 	else
-		sleep 10
+		sleep 60
 		fastalockFunction
 	fi
 }
 function fastaunlockFunction {
-	rm -r fastalock
+	rm -rf fastalock
 
 }
 function readstoFastqFunction {
@@ -382,17 +392,21 @@ function readstoFastqFunction {
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
 							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							wait1=$!
 							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait $!
+							wait2=$!
 						fi
 					else
 						fasta_to_fastqFunction 
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
 							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq &
+							wait1=$!
 							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq &
-							wait $!
+							wait2=$!
 						fi
 					fi
+					wait $wait1
+					wait $wait2
 					fastaunlockFunction
 
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
@@ -791,7 +805,7 @@ function sigmaCfileFunction {
 		SIZE=`tail -n1 $F1 |wc |awk '{print $3}'`
 		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
 		F1=`echo "$F1.fastq"`
-		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
+		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}' |rev |cut -d "/" -f 1 |rev`
 		F2=`echo "$F2.fastq"`
 		
 		readstoFastqFunction
