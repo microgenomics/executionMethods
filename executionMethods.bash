@@ -1,6 +1,7 @@
 #make sure you have installed correctly the patogen detection software 
-set -e
+set -ex
 
+invalidband=1
 cfileband=0
 statusband=0
 rfileband=0
@@ -26,41 +27,54 @@ do
 	case $i in
 	"--cfile")
 		cfileband=1
+		invalidband=0
 	;;
 	"--rfile")
 		rfileband=1
+		invalidband=0
 	;;
 	"--dbPS")
 		dbpsband=1
+		invalidband=0
 	;;
 	"--PSfilterdb")
 		psfilterdb=1
+		invalidband=0
 	;;
 	"--dbM2")
 		dbm2band=1
+		invalidband=0
 	;;
 	"--dbmarker")
 		dbmarkerband=1
+		invalidband=0
 	;;
 	"--dbMX")
 		dbmxband=1
+		invalidband=0
 	;;
 	"--MXnames")
 		mxnamesband=1
+		invalidband=0
 	;;
 	"--sigmacfile")
 		sigmacfileband=1
+		invalidband=0
 	;;
 	"--dbSG")
 		dbsgband=1
+		invalidband=0
 	;;
 	"--csfile")
 		csfileband=1
+		invalidband=0
 	;;
 	"--tprior")
 		priorband=1
+		invalidband=0
 	;;
 	"--help")
+	invalidband=0
 		echo "#########################################################################################"
 		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[DB options] [databases]"
 		echo -e "\nOptions aviable:"
@@ -317,55 +331,62 @@ do
 
 		fi
 
+		if [ $((invalidband)) -eq 1 ]; then
+			echo "some of your parameters are invalid"
+			exit
+		else
+			invalid=1
+		fi
+
 	;;
 	esac
 done
 
 #################################################
 declare -A pids
-i=0
-maxexe=5
+pindex=0
+maxexe=$CORES
 #################################################
 lastpid=0
 function coresControlFunction {
-if mkdir $INITIALPATH/lock; then
+	request=$1
+if mkdir /tmp/lockfolder; then
+	if [ -f /tmp/corescontrol ]; then
+		i=`tail -n1 /tmp/corescontrol`
+	else
+		i=0
+	fi
+
+	if [ -f /tmp/proccesscontrol ];then
+		firstproc=`head -n1 /tmp/proccesscontrol |awk '{print $1}'`
+		firstcore=`head -n1 /tmp/proccesscontrol |awk '{print $2}'`
+	fi
+
 	if [ $((i)) -ge $((maxexe)) ]; then
 
-			for pid in "${pids[@]}"
-			do
-			   wait $pid
-			   i=$((i-1))
-			   for j in `seq 0 1 4`
-			   do
-			   		j2=$((j+1))
-					pids[${j}]=${pids[${j2}]}
-			   done
-			   #unset pids[${j2}]
-			   break
-			done
+		while kill -0 "$firstproc"; do
+			echo "waiting for proccess $firstproc"
+            sleep 61
+        done
+        
+        sed "1d" /tmp/proccesscontrol >toreplace
+        rm /tmp/proccesscontrol
+        mv toreplace /tmp/proccesscontrol
 
-#		band="foo"
-#		while [ "$band" != "" ];
-#		do
-#			firstpid=`head -n 1 /tmp/corescontrol |awk '{print $2}'`
-#			i=`head -n 1 /tmp/corescontrol |awk -v actual=$i '{print actual-$3}'`
-#			if [ "$firstpid" == "" ]; then
-#				band="foo"
-#			else
-#				echo "waiting for procces $firstpid"
-#				while kill -0 "$firstpid"; do
-#					sleep 5
-#				done			
-#				sed -i '' "1d" /tmp/corescontrol
-#				band=""
-#			fi
-#		done
+		i=`echo $i $firstcore |awk '{print $1-$2}'`
+		echo "$i" >>/tmp/corescontrol
+
+	else
+		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>/tmp/corescontrol
 	fi
-	rm -rf $INITIALPATH/lock
+
 else
 	sleep 60
-	coresControlFunction
+	coresControlFunction $request
 fi
+}
+function coresunlockFunction {
+	rm -r /tmp/lockfolder
 }
 function fastalockFunction {
 	if mkdir fastalock; then
@@ -438,15 +459,8 @@ function pathoscopeFunction {
 		readstoFastqFunction
 
 		cd $TMPNAME
-	
-		#if [ -f /tmp/corescontrol ];then
-		#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-		#else
-		#	i=0
-		#fi		
 
-		coresControlFunction
-	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+		coresControlFunction 1
 
 
 		if [ "$PSFDB" == "" ];then
@@ -458,12 +472,14 @@ function pathoscopeFunction {
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
-		pids[${i}]=$lastpid
-		i=$((i+1))
-		#echo "$i $lastpid 1" >> /tmp/corescontrol
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid 1 pathoscopeF1" >> /tmp/proccesscontrol
+		coresunlockFunction
 
 		cd ..
-
+		
 		TOCLEAN=$RFILE
 		IRFILE=$FILE
 
@@ -478,26 +494,20 @@ function metaphlanFunction {
 		readstoFastqFunction
 		
 		cd $TMPNAME
-		#if [ -f /tmp/corescontrol ];then
-		#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-		#else
-		#	i=0
-		#fi	
-		coresControlFunction
-	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+
+		coresControlFunction 1
 		if [ -f "bowtieout$RFILE.bz2" ];then
 			rm -f bowtieout$RFILE.bz2
 		fi
 
 		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat &
 		lastpid=$!
-		#i=$CORES
-		pids[${i}]=$lastpid		
-		i=$((i+1))
-
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid 1 metaphlanF1" >> /tmp/proccesscontrol
+		coresunlockFunction
+		
 		cd ..
-
-		#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 		TOCLEAN=$RFILE
 		IRFILE=$FILE
@@ -531,31 +541,23 @@ function metamixFunction {
 					cd $TMPNAME
 					cd metamix_$P1.$P2
 					
-					#if [ -f /tmp/corescontrol ];then
-					#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-					#else
-					#	i=0
-					#fi	
-					coresControlFunction
-					#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-
-					${BLASTHOME}/blastn -query $P1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$P1.tab &
+					coresControlFunction 1
+					${BLASTHOME}/blastn -query $P1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab &
 					lastpid=$!
-					pids[${i}]=$lastpid
-					i=$((i+1))
+					pids[${pindex}]=$lastpid
+					pindex=$((pindex+1))
+					echo "$lastpid 1 metamixF1_1" >> /tmp/proccesscontrol
+					coresunlockFunction
 
-			       # echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
-					#i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-					coresControlFunction
-						#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
-
-					${BLASTHOME}/blastn -query $P2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$P2.tab &
+					coresControlFunction 1
+					${BLASTHOME}/blastn -query $P2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab &
 					lastpid=$!
-					pids[${i}]=$lastpid
-					i=$((i+1))
+					pids[${pindex}]=$lastpid
+					pindex=$((pindex+1))
+					echo "$lastpid 1 metamixF1_2" >> /tmp/proccesscontrol
+					coresunlockFunction
 
-			        #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 			        cd ..
 					cd ..
 									
@@ -581,19 +583,15 @@ function metamixFunction {
 
 			cd $TMPNAME
 			cd metamix_$SINGLE
-			#if [ -f /tmp/corescontrol ];then
-			#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-			#else
-			#	i=0
-			#fi	
-			coresControlFunction
-		#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+
+			coresControlFunction $CORES
 
 			blastn -query $SINGLE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab &
 			lastpid=$!
-			pids[${i}]=$lastpid
-			i=$((i+1))
-
+			pids[${pindex}]=$lastpid
+			pindex=$((pindex+1))
+			echo "$lastpid $CORES metamixF1" >> /tmp/proccesscontrol
+			coresunlockFunction
 			cd ..
 			cd ..
 			#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
@@ -611,7 +609,7 @@ function sigmaFunction {
 	#else
 	#	i=0
 	#fi	
-	coresControlFunction	
+	coresControlFunction $CORES
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
@@ -637,9 +635,10 @@ function sigmaFunction {
 	mv ../$SIGMACFILE .
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w . &
 	lastpid=$!
-	pids[${i}]=$lastpid
-	i=$maxexe
-
+	pids[${pindex}]=$lastpid
+	pindex=$((pindex+1))
+	echo "$lastpid $CORES sigmaF1" >> /tmp/proccesscontrol
+	coresunlockFunction
 	cd ..
 	cd ..
     #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
@@ -655,7 +654,7 @@ function pathoscopeFunction2 {
 	#else
 	#	i=0
 	#fi
-	coresControlFunction	
+	coresControlFunction 1
 	if [ "$PRIOR" == "" ];then
 		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE &
 
@@ -663,87 +662,101 @@ function pathoscopeFunction2 {
 		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR &
 	fi
 	lastpid=$!
-	pids[${i}]=$lastpid
-	i=$((i+1))
-	#echo "$i $lastpid 1" >> /tmp/corescontrol
-
+	pids[${pindex}]=$lastpid
+	pindex=$((pindex+1))
+	echo "$lastpid 1 pathoscopeF2" >> /tmp/proccesscontrol
+	coresunlockFunction
 	cd ..
 
 }
 
 function metamixFunction2 {
 
-	#if [ -f /tmp/corescontrol ];then
-	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	#else
-	#	i=0
-	#fi
-	coresControlFunction
+
 	cd $TMPNAME
-	trys=10
-	metamixCodeFunction
-	echo "execute metamix R function"
+	#trys=
+
+	coresControlFunction 1
 
 		if [ "$READS" == "paired" ]; then
 			cd metamix_$P1.$P2
 			BACKUPNAME=`echo "metamix_$P1.$P2"`
-
+			metamixCodeFunction
+			echo "call to metamix R function"
 			cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
 			rm blastOut$P1.tab blastOut$P2.tab
+			executionpath=`pwd`
 
-			while [ $((trys)) -ge 1 ]
-			do
-				if Rscript ../MetaMix.R blastOut$P1.$P2.tab $MXNAMES ;then
-					mv presentSpecies_assignedReads.tsv ../../$BACKUPNAME.assignedReads.tsv
-					echo "metamix execution successful"
-					break
+			executeMetamix blastOut$P1.$P2.tab $executionpath &
 
-				else
-					trys=$((trys-1))
-					echo "metamix execution failed, ($trys retryings left)"
-				fi
-			done
+			#while [ $((trys)) -ge 1 ]
+			#do
+			#	if  ;then
+			#		
+			#		
+			#		echo "metamix execution successful"
+			#		break
+
+			#	else
+			#		trys=$((trys-1))
+			#		echo "metamix execution failed, ($trys retryings left)"
+			#	fi
+			#done
 
 			cd ..
 
 		else
 			cd metamix_$SINGLE
-			while [ $((trys)) -ge 1 ]
-			do
-				if Rscript ../MetaMix.R blastOut$SINGLE.tab $MXNAMES ;then
-					mv presentSpecies_assignedReads.tsv ../../metamix_$SINGLE.tsv
-					echo "metamix execution successful"
-					break
-				else
-					trys=$((trys-1))
-					echo "metamix execution failed, ($trys retryings left)"
-				fi
-			done
+			metamixCodeFunction
+			echo "execute metamix R function"
+			executionpath=`pwd`
+
+			executeMetamix blastOut$SINGLE.tab $executionpath &
+
+			
+			#while [ $((trys)) -ge 1 ]
+			#do
+			#	if Rscript ../MetaMix.R blastOut$SINGLE.tab $MXNAMES ;then
+			#		mv presentSpecies_assignedReads.tsv ../../metamix_$SINGLE.tsv
+			#		echo "metamix execution successful"
+			#		break
+			#	else
+			#		trys=$((trys-1))
+			#		echo "metamix execution failed, ($trys retryings left)"
+			#	fi
+			#done
 
 			cd ..
 		fi
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid 1 metamixF2" >> /tmp/proccesscontrol
 
-		if [ $((trys)) -eq 0 ];then
-			foldererror=`pwd`
-			echo "error: Metamix execution not finished in $foldererror"
-		fi
+		#if [ $((trys)) -eq 0 ];then
+		#	foldererror=`pwd`
+		#	echo "error: Metamix execution not finished in $foldererror"
+		#fi
 
+		coresunlockFunction
 		cd ..
-
-
-    #echo "$i $lastpid 1" >> /tmp/corescontrol
 
 }
 function sigmaFunction2 {
 	cd $TMPNAME 
 	cd $SGTOCLEAN
 
+	coresControlFunction 1
+
 	echo "executing sigma wrapper module"	
 	${SIGMAHOME}/./sigma -c $SIGMACFILE -t $THREADS -w . &
 
 	lastpid=$!
-	pids[${i}]=$lastpid
-	i=$((i+1))
+	pids[${pindex}]=$lastpid
+	pindex=$((pindex+1))
+	echo "$lastpid $CORES sigmaF2" >> /tmp/proccesscontrol
+	coresControlFunction 1
+
 	cd ..
 	cd ..
 
@@ -760,7 +773,7 @@ function constrainsFunction {
 	readstoFastqFunction
 
 	cd $TMPNAME
-	coresControlFunction
+	coresControlFunction $CORES
 
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
 	if [ -f "../metaphlan_$RFILE.dat" ];then
@@ -780,92 +793,22 @@ function constrainsFunction {
 			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
-			python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $CORES -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
-			lastpid=$!
-			pids[${i}]=$lastpid
-			i=$((i+1))
+			python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+			lastpid=$!	
+			pids[${pindex}]=$lastpid
+			pindex=$((pindex+1))
+			echo "$lastpid $CORES constrains" >> /tmp/proccesscontrol
 	else
 			echo "Constrains: no metaphlan2 file found, impossible continue"
 			CSERROR=1
 	fi
+	coresControlFunction 1
+
 	cd ..
 
 			
 }
 
-function sigmaCfileFunction {
-
-	if [ "$READS" == "paired" ]; then
-		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
-		SIZE=`tail -n1 $F1 |wc |awk '{print $3}'`
-		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
-		F1=`echo "$F1.fastq"`
-		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}' |rev |cut -d "/" -f 1 |rev`
-		F2=`echo "$F2.fastq"`
-		
-		readstoFastqFunction
-		cd $TMPNAME	
-		FASTQFOLDER=`pwd`
-		cd ..
-		RFILE=`echo "$F1,$F2"`
-		#RFILE=`echo "$F1,$F2"`
-		
-		echo "[Program_Info]
-Bowtie_Directory=$BOWTIE2HOME
-Samtools_Directory=$SAMTOOLSHOME
-[Data_Info]
-Reference_Genome_Directory=$DBSG
-Paired_End_Reads_1=$FASTQFOLDER/$F1
-Paired_End_Reads_2=$FASTQFOLDER/$F2
-[Bowtie_Search]
-Maximum_Mismatch_Count=3
-Minimum_Fragment_Length=0
-Maximum_Fragment_Length=2000
-Bowtie_Threads_Number=$THREADS
-[Model_Probability]
-Mismatch_Probability=0.05
-Minimum_Relative_Abundance = 0.01
-[Statistics]
-Bootstrap_Iteration_Number=10
-Minumum_Coverage_Length=$SIZE
-Minimum_Average_Coverage_Depth=3
-" > $TMPNAME/sigma_$RFILE""_config.cfg
-		
-
-
-	else
-		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
-		readstoFastqFunction
-		RFILE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
-		RFILE=`echo "$IRFILE.fastq"`
-		cd $TMPNAME	
-		FASTQFOLDER=`pwd`
-		cd ..
-
-		echo "[Program_Info]
-Bowtie_Directory=$BOWTIE2HOME
-Samtools_Directory=$SAMTOOLSHOME
-[Data_Info]
-Reference_Genome_Directory=$DBSG
-Single_End_Reads=$FASTQFOLDER/$RFILE
-[Bowtie_Search]
-Maximum_Mismatch_Count=3
-Minimum_Fragment_Length=0
-Maximum_Fragment_Length=2000
-Bowtie_Threads_Number=$THREADS
-[Model_Probability]
-Mismatch_Probability=0.05
-Minimum_Relative_Abundance = 0.01
-[Statistics]
-Bootstrap_Iteration_Number=10
-Minumum_Coverage_Length=$SIZE
-Minimum_Average_Coverage_Depth=3
-" > $TMPNAME/sigma_$RFILE""_config.cfg
-
-
-	fi
-
-}
 function lastStepFunction {
 
 	rm -f $TMPNAME/fasta_to_fastq.pl
@@ -886,7 +829,7 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		#rm -f $TMPNAME/MetaMix.R
+		
 		if [ "$READS" == "paired" ]; then
 			rm -rf $TMPNAME/metamix_$P1.$P2
 		else
@@ -1029,6 +972,80 @@ function criticalvariablesFunction {
 	fi
 }
 
+function sigmaCfileFunction {
+
+	if [ "$READS" == "paired" ]; then
+		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
+		SIZE=`tail -n1 $F1 |wc |awk '{print $3}'`
+		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
+		F1=`echo "$F1.fastq"`
+		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}' |rev |cut -d "/" -f 1 |rev`
+		F2=`echo "$F2.fastq"`
+		
+		readstoFastqFunction
+		cd $TMPNAME	
+		FASTQFOLDER=`pwd`
+		cd ..
+		RFILE=`echo "$F1,$F2"`
+		#RFILE=`echo "$F1,$F2"`
+		
+		echo "[Program_Info]
+Bowtie_Directory=$BOWTIE2HOME
+Samtools_Directory=$SAMTOOLSHOME
+[Data_Info]
+Reference_Genome_Directory=$DBSG
+Paired_End_Reads_1=$FASTQFOLDER/$F1
+Paired_End_Reads_2=$FASTQFOLDER/$F2
+[Bowtie_Search]
+Maximum_Mismatch_Count=3
+Minimum_Fragment_Length=0
+Maximum_Fragment_Length=2000
+Bowtie_Threads_Number=$THREADS
+[Model_Probability]
+Mismatch_Probability=0.05
+Minimum_Relative_Abundance = 0.01
+[Statistics]
+Bootstrap_Iteration_Number=10
+Minumum_Coverage_Length=$SIZE
+Minimum_Average_Coverage_Depth=3
+" > $TMPNAME/sigma_$RFILE""_config.cfg
+		
+
+
+	else
+		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
+		readstoFastqFunction
+		RFILE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+		RFILE=`echo "$IRFILE.fastq"`
+		cd $TMPNAME	
+		FASTQFOLDER=`pwd`
+		cd ..
+
+		echo "[Program_Info]
+Bowtie_Directory=$BOWTIE2HOME
+Samtools_Directory=$SAMTOOLSHOME
+[Data_Info]
+Reference_Genome_Directory=$DBSG
+Single_End_Reads=$FASTQFOLDER/$RFILE
+[Bowtie_Search]
+Maximum_Mismatch_Count=3
+Minimum_Fragment_Length=0
+Maximum_Fragment_Length=2000
+Bowtie_Threads_Number=$THREADS
+[Model_Probability]
+Mismatch_Probability=0.05
+Minimum_Relative_Abundance = 0.01
+[Statistics]
+Bootstrap_Iteration_Number=10
+Minumum_Coverage_Length=$SIZE
+Minimum_Average_Coverage_Depth=3
+" > $TMPNAME/sigma_$RFILE""_config.cfg
+
+
+	fi
+
+}
+
 function fasta_to_fastqFunction {
 	echo '#!/usr/bin/perl
 			use strict;
@@ -1065,29 +1082,58 @@ function fasta_to_fastqFunction {
 }
 
 function metamixCodeFunction {
-	echo 'args<-commandArgs()
-	blastab<-c(args[6])
-	names<-c(args[7])
-
-	require(metaMix)
+	echo 'library(metaMix)
 	library(methods)
-
-	###############################
+	args<-commandArgs()
+	blastab<-c(args[6])
 	print("execute Step1")
 	Step1<-generative.prob.nucl(blast.output.file=blastab,blast.default=FALSE,outDir=".")
+	' > step1.R
+
+	echo 'library(metaMix)
+	library(methods)
+	args<-commandArgs()
+	Step1<-c(args[6])
 	print("execute Step2")
 	Step2 <- reduce.space(step1=Step1)
+	' > step2.R
+
+	echo 'library(metaMix)
+	library(methods)
+	args<-commandArgs()
+	Step2<-c(args[6])
 	print("execute Step3")
 	Step3<-parallel.temper(step2=Step2)
-	print("execute Step4")
-	step4<-bayes.model.aver(step2=Step2, step3=Step3, taxon.name.map=names)' > MetaMix.R
-}
+	' > step3.R
 
+	echo 'library(metaMix)
+	library(methods)
+	args<-commandArgs()
+	Step2<-c(args[6])
+	Step3<-c(args[7])
+	names<-c(args[8])
+	print("execute Step4")
+	step4<-bayes.model.aver(step2=Step2, step3=Step3, taxon.name.map=names)
+	' > step4.R
+	
+}
+function executeMetamix {
+	#$1 blast output (fmt 6)
+	#$2 $executionpath
+	Rscript $2/step1.R $2/$1
+	Rscript $2/step2.R $2/step1.RData
+	if eval "mpirun -np 1 -quiet Rscript $2/step3.R $2/step2.RData"; then #this is just to return the control to master script (mpirun is a child)
+		Rscript step4.R $2/step2.RData $2/step3.RData $MXNAMES
+	else
+		Rscript step4.R $2/step2.RData $2/step3.RData $MXNAMES
+	fi
+	mv $2/presentSpecies_assignedReads.tsv $2/../../$BACKUPNAME.assignedReads.tsv
+}
 #begin the code
 
 if [ $((statusband)) -ge 1 ]; then
-cd $INITIALPATH
-#Check some parameters before do something
+	cd $INITIALPATH
+	#Check some parameters before do something
 	if [ -d "$TMPNAME" ]; then
 		echo "$TMPNAME exist, working in."
 	else
@@ -1127,7 +1173,9 @@ cd $INITIALPATH
 			done
 			unset pids
 			declare -A pids
-			i=0
+			pindex=0
+			#to sure we are in $INITIALPATH
+			cd $INITIALPATH
 			for g in $METHOD
 			do
 				case $g in
@@ -1138,7 +1186,7 @@ cd $INITIALPATH
 						echo "metaphlan done"
 					;;
 					"METAMIX")
-						metamixFunction2 #bottleneck, put metamix in the last of methods e.g. METHODS=SIGMA,CONSTRAINS,METAMIX
+						metamixFunction2
 					;;
 					"SIGMA")
 					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory, and each name folder must be the gi number of fasta that contain)

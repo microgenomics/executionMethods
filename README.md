@@ -84,25 +84,3 @@ executionMethods just move the files that are made by the softwares, next, put t
 
 ##Warnings
 * Your computer may freeze due to the high compute if you run a lot of execution in parallel (we recommend execute this module in a cluster).
-* Metamix: **If you only use Metamix, ignore this warning.** Some times metamix fails in last step and output file is not generated, so, this module implements a tolerance for ten execution (automatically re-runs until ten times if execution  fails, but there is not warranty that work after all runs), due to this, is not possible execute Metamix in an independent process making a query waiting if your config file is something like this:
-
-		METHOD=METAMIX,CONSTRAINS,PATHOSCOPE,METAPHLAN
-to solve this problem there are two ways: 
-* 1) Move METAMIX to the final line, like this:
-		
-		METHOD=CONSTRAINS,PATHOSCOPE,METAPHLAN,METAMIX
-this will execute pathoscope in an independent process, next metaphlan in an independent process and finally metamix in the main process (not independent), but is the last execution so this will not generate a query waiting.
-
-* 2) Execute metamix in other execution manipulation, like this:
-
-		bash executionMethods.bash --cfile config1.conf ...etc &
-		bash executionMethods.bash --cfile config2.conf ...etc &
-		
-	where config1.conf have:
-			
-		METHOD=CONSTRAINS,PATHOSCOPE,METAPHLAN
-	and config2.conf have
-	
-		METHOD=METAMIX
-
-	"&" symbol will execute the script in parallel process
