@@ -1117,6 +1117,7 @@ function metamixCodeFunction {
 	' > step4.R
 	
 }
+
 function executeMetamix {
 	#$1 blast output (fmt 6)
 	#$2 $executionpath
