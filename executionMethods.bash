@@ -349,39 +349,38 @@ maxexe=$CORES
 #################################################
 lastpid=0
 function coresControlFunction {
-	request=$1
-if mkdir /tmp/lockfolder; then
-	if [ -f /tmp/corescontrol ]; then
-		i=`tail -n1 /tmp/corescontrol`
+request=$1
+if mkdir $HOME/lockfolder; then
+	if [ -f $HOME/corescontrol ]; then
+		i=`tail -n1 $HOME/corescontrol`
 	else
 		i=0
 	fi
 
-	if [ -f /tmp/proccesscontrol ];then
-		firstproc=`head -n1 /tmp/proccesscontrol |awk '{print $1}'`
-		firstcore=`head -n1 /tmp/proccesscontrol |awk '{print $2}'`
+	if [ -f $HOME/proccesscontrol ];then
+		firstproc=`head -n1 $HOME/proccesscontrol |awk '{print $1}'`
+		firstcore=`head -n1 $HOME/proccesscontrol |awk '{print $2}'`
 	fi
 
 	if [ $((i)) -ge $((maxexe)) ]; then
 
 		while kill -0 "$firstproc"; do
-			echo "waiting for proccess $firstproc"
-            sleep 61
+            sleep 60
         done
         
-        sed "1d" /tmp/proccesscontrol >toreplace
-        rm /tmp/proccesscontrol
-        mv toreplace /tmp/proccesscontrol
+        sed "1d" $HOME/proccesscontrol >toreplace
+        rm $HOME/proccesscontrol
+        mv toreplace $HOME/proccesscontrol
 
-        sed "1d" /tmp/corescontrol >toreplace
-        rm /tmp/corescontrol
-        mv toreplace /tmp/corescontrol
+        sed "1d" $HOME/corescontrol >toreplace
+        rm $HOME/corescontrol
+        mv toreplace $HOME/corescontrol
 
 		i=`echo $i $firstcore |awk '{print $1-$2}'`
-		echo "$i" >>/tmp/corescontrol
+		echo "$i" >>$HOME/corescontrol
 
 	else
-		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>/tmp/corescontrol
+		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$HOME/corescontrol
 	fi
 
 else
@@ -390,7 +389,7 @@ else
 fi
 }
 function coresunlockFunction {
-	rm -r /tmp/lockfolder
+	rm -r $HOME/lockfolder
 }
 function fastalockFunction {
 	if mkdir fastalock; then
@@ -479,7 +478,7 @@ function pathoscopeFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 pathoscopeF1" >> /tmp/proccesscontrol
+		echo "$lastpid 1 pathoscopeF1" >> $HOME/proccesscontrol
 		coresunlockFunction
 
 		cd ..
@@ -508,7 +507,7 @@ function metaphlanFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metaphlanF1" >> /tmp/proccesscontrol
+		echo "$lastpid 1 metaphlanF1" >> $HOME/proccesscontrol
 		coresunlockFunction
 		
 		cd ..
@@ -550,7 +549,7 @@ function metamixFunction {
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_1" >> /tmp/proccesscontrol
+					echo "$lastpid 1 metamixF1_1" >> $HOME/proccesscontrol
 					coresunlockFunction
 
 
@@ -559,7 +558,7 @@ function metamixFunction {
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_2" >> /tmp/proccesscontrol
+					echo "$lastpid 1 metamixF1_2" >> $HOME/proccesscontrol
 					coresunlockFunction
 
 			        cd ..
@@ -594,7 +593,7 @@ function metamixFunction {
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES metamixF1" >> /tmp/proccesscontrol
+			echo "$lastpid $CORES metamixF1" >> $HOME/proccesscontrol
 			coresunlockFunction
 			cd ..
 			cd ..
@@ -607,7 +606,6 @@ function sigmaFunction {
 	echo "wake up sigma"
 	cd $TMPNAME
 
-	coresControlFunction $CORES
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
@@ -630,13 +628,18 @@ function sigmaFunction {
 			cd $SGTOCLEAN
 		fi
 	fi
+
+	coresControlFunction $CORES
+
 	mv ../$SIGMACFILE .
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w . &
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF1" >> /tmp/proccesscontrol
+	echo "$lastpid $CORES sigmaF1" >> $HOME/proccesscontrol
+	
 	coresunlockFunction
+	
 	cd ..
 	cd ..
 
@@ -656,7 +659,7 @@ function pathoscopeFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 pathoscopeF2" >> /tmp/proccesscontrol
+	echo "$lastpid 1 pathoscopeF2" >> $HOME/proccesscontrol
 	coresunlockFunction
 	cd ..
 
@@ -695,10 +698,10 @@ function metamixFunction2 {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metamixF2" >> /tmp/proccesscontrol
+		echo "$lastpid 1 metamixF2" >> $HOME/proccesscontrol
 
-		coresunlockFunction
-		cd ..
+	coresunlockFunction
+	cd ..
 
 }
 function sigmaFunction2 {
@@ -713,7 +716,8 @@ function sigmaFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF2" >> /tmp/proccesscontrol
+	echo "$lastpid $CORES sigmaF2" >> $HOME/proccesscontrol
+
 	coresunlockFunction
 
 	cd ..
@@ -724,17 +728,12 @@ function sigmaFunction2 {
 function constrainsFunction {
 
 	echo "wake up constrains"
-	#if [ -f /tmp/corescontrol ];then
-	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	#else
-	#	i=0
-	#fi
 	readstoFastqFunction
 
 	cd $TMPNAME
+
 	coresControlFunction $CORES
 
-	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
 	if [ -f "../metaphlan_$RFILE.dat" ];then
 		CSERROR=0
 		CSTOCLEAN=constrains_$RFILE
@@ -756,7 +755,7 @@ function constrainsFunction {
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES constrains" >> /tmp/proccesscontrol
+			echo "$lastpid $CORES constrains" >> $HOME/proccesscontrol
 	else
 			echo "Constrains: no metaphlan2 file found, impossible continue"
 			CSERROR=1
@@ -764,7 +763,6 @@ function constrainsFunction {
 	coresunlockFunction
 
 	cd ..
-
 			
 }
 
@@ -999,7 +997,6 @@ Bootstrap_Iteration_Number=10
 Minumum_Coverage_Length=$SIZE
 Minimum_Average_Coverage_Depth=3
 " > $TMPNAME/sigma_$RFILE""_config.cfg
-
 
 	fi
 
