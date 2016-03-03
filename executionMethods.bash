@@ -373,6 +373,10 @@ if mkdir /tmp/lockfolder; then
         rm /tmp/proccesscontrol
         mv toreplace /tmp/proccesscontrol
 
+        sed "1d" /tmp/corescontrol >toreplace
+        rm /tmp/corescontrol
+        mv toreplace /tmp/corescontrol
+
 		i=`echo $i $firstcore |awk '{print $1-$2}'`
 		echo "$i" >>/tmp/corescontrol
 
@@ -594,7 +598,6 @@ function metamixFunction {
 			coresunlockFunction
 			cd ..
 			cd ..
-			#echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 		fi
 	
 }
@@ -604,13 +607,8 @@ function sigmaFunction {
 	echo "wake up sigma"
 	cd $TMPNAME
 
-	#if [ -f /tmp/corescontrol ];then
-	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	#else
-	#	i=0
-	#fi	
 	coresControlFunction $CORES
-	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`
+
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
 		if mkdir $SGTOCLEAN ;then
@@ -641,7 +639,6 @@ function sigmaFunction {
 	coresunlockFunction
 	cd ..
 	cd ..
-    #echo "$i $lastpid $AVIABLE" >> /tmp/corescontrol
 
 }
 
@@ -649,11 +646,6 @@ function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
 
-	#if [ -f /tmp/corescontrol ];then
-	#	i=`tail -n 1 /tmp/corescontrol |awk '{print $1}'`
-	#else
-	#	i=0
-	#fi
 	coresControlFunction 1
 	if [ "$PRIOR" == "" ];then
 		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE &
@@ -674,7 +666,6 @@ function metamixFunction2 {
 
 
 	cd $TMPNAME
-	#trys=
 
 	coresControlFunction 1
 
@@ -689,20 +680,6 @@ function metamixFunction2 {
 
 			executeMetamix blastOut$P1.$P2.tab $executionpath &
 
-			#while [ $((trys)) -ge 1 ]
-			#do
-			#	if  ;then
-			#		
-			#		
-			#		echo "metamix execution successful"
-			#		break
-
-			#	else
-			#		trys=$((trys-1))
-			#		echo "metamix execution failed, ($trys retryings left)"
-			#	fi
-			#done
-
 			cd ..
 
 		else
@@ -713,30 +690,12 @@ function metamixFunction2 {
 
 			executeMetamix blastOut$SINGLE.tab $executionpath &
 
-			
-			#while [ $((trys)) -ge 1 ]
-			#do
-			#	if Rscript ../MetaMix.R blastOut$SINGLE.tab $MXNAMES ;then
-			#		mv presentSpecies_assignedReads.tsv ../../metamix_$SINGLE.tsv
-			#		echo "metamix execution successful"
-			#		break
-			#	else
-			#		trys=$((trys-1))
-			#		echo "metamix execution failed, ($trys retryings left)"
-			#	fi
-			#done
-
 			cd ..
 		fi
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
 		echo "$lastpid 1 metamixF2" >> /tmp/proccesscontrol
-
-		#if [ $((trys)) -eq 0 ];then
-		#	foldererror=`pwd`
-		#	echo "error: Metamix execution not finished in $foldererror"
-		#fi
 
 		coresunlockFunction
 		cd ..
@@ -755,7 +714,7 @@ function sigmaFunction2 {
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
 	echo "$lastpid $CORES sigmaF2" >> /tmp/proccesscontrol
-	coresControlFunction 1
+	coresunlockFunction
 
 	cd ..
 	cd ..
@@ -802,7 +761,7 @@ function constrainsFunction {
 			echo "Constrains: no metaphlan2 file found, impossible continue"
 			CSERROR=1
 	fi
-	coresControlFunction 1
+	coresunlockFunction
 
 	cd ..
 
