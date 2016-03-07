@@ -349,38 +349,39 @@ maxexe=$CORES
 #################################################
 lastpid=0
 function coresControlFunction {
-request=$1
-if mkdir $HOME/lockfolder; then
-	if [ -f $HOME/corescontrol ]; then
-		i=`tail -n1 $HOME/corescontrol`
+	request=$1
+if mkdir /home/ecastron/lockfolder_donttouch; then
+	if [ -f /home/ecastron/corescontrol ]; then
+		i=`tail -n1 /home/ecastron/corescontrol`
 	else
 		i=0
 	fi
 
-	if [ -f $HOME/proccesscontrol ];then
-		firstproc=`head -n1 $HOME/proccesscontrol |awk '{print $1}'`
-		firstcore=`head -n1 $HOME/proccesscontrol |awk '{print $2}'`
+	if [ -f /home/ecastron/proccesscontrol ];then
+		firstproc=`head -n1 /home/ecastron/proccesscontrol |awk '{print $1}'`
+		firstcore=`head -n1 /home/ecastron/proccesscontrol |awk '{print $2}'`
 	fi
 
 	if [ $((i)) -ge $((maxexe)) ]; then
 
 		while kill -0 "$firstproc"; do
-            sleep 60
+			echo "waiting for proccess $firstproc"
+            sleep 61
         done
         
-        sed "1d" $HOME/proccesscontrol >toreplace
-        rm $HOME/proccesscontrol
-        mv toreplace $HOME/proccesscontrol
+        sed "1d" /home/ecastron/proccesscontrol >toreplace
+        rm /home/ecastron/proccesscontrol
+        mv toreplace /home/ecastron/proccesscontrol
 
-        sed "1d" $HOME/corescontrol >toreplace
-        rm $HOME/corescontrol
-        mv toreplace $HOME/corescontrol
+        sed "1d" /home/ecastron/corescontrol >toreplace
+        rm /home/ecastron/corescontrol
+        mv toreplace /home/ecastron/corescontrol
 
 		i=`echo $i $firstcore |awk '{print $1-$2}'`
-		echo "$i" >>$HOME/corescontrol
+		echo "$i" >>/home/ecastron/corescontrol
 
 	else
-		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$HOME/corescontrol
+		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>/home/ecastron/corescontrol
 	fi
 
 else
@@ -389,7 +390,7 @@ else
 fi
 }
 function coresunlockFunction {
-	rm -r $HOME/lockfolder
+	rm -rf /home/ecastron/lockfolder_donttouch
 }
 function fastalockFunction {
 	if mkdir fastalock; then
@@ -478,7 +479,7 @@ function pathoscopeFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 pathoscopeF1" >> $HOME/proccesscontrol
+		echo "$lastpid 1 pathoscopeF1" >> /home/ecastron/proccesscontrol
 		coresunlockFunction
 
 		cd ..
@@ -507,7 +508,7 @@ function metaphlanFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metaphlanF1" >> $HOME/proccesscontrol
+		echo "$lastpid 1 metaphlanF1" >> /home/ecastron/proccesscontrol
 		coresunlockFunction
 		
 		cd ..
@@ -549,7 +550,7 @@ function metamixFunction {
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_1" >> $HOME/proccesscontrol
+					echo "$lastpid 1 metamixF1_1" >> /home/ecastron/proccesscontrol
 					coresunlockFunction
 
 
@@ -558,7 +559,7 @@ function metamixFunction {
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_2" >> $HOME/proccesscontrol
+					echo "$lastpid 1 metamixF1_2" >> /home/ecastron/proccesscontrol
 					coresunlockFunction
 
 			        cd ..
@@ -593,7 +594,7 @@ function metamixFunction {
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES metamixF1" >> $HOME/proccesscontrol
+			echo "$lastpid $CORES metamixF1" >> /home/ecastron/proccesscontrol
 			coresunlockFunction
 			cd ..
 			cd ..
@@ -606,6 +607,7 @@ function sigmaFunction {
 	echo "wake up sigma"
 	cd $TMPNAME
 
+	coresControlFunction $CORES
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
@@ -628,18 +630,13 @@ function sigmaFunction {
 			cd $SGTOCLEAN
 		fi
 	fi
-
-	coresControlFunction $CORES
-
 	mv ../$SIGMACFILE .
 	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w . &
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF1" >> $HOME/proccesscontrol
-	
+	echo "$lastpid $CORES sigmaF1" >> /home/ecastron/proccesscontrol
 	coresunlockFunction
-	
 	cd ..
 	cd ..
 
@@ -659,7 +656,7 @@ function pathoscopeFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 pathoscopeF2" >> $HOME/proccesscontrol
+	echo "$lastpid 1 pathoscopeF2" >> /home/ecastron/proccesscontrol
 	coresunlockFunction
 	cd ..
 
@@ -698,17 +695,17 @@ function metamixFunction2 {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metamixF2" >> $HOME/proccesscontrol
+		echo "$lastpid 1 metamixF2" >> /home/ecastron/proccesscontrol
 
-	coresunlockFunction
-	cd ..
+		coresunlockFunction
+		cd ..
 
 }
 function sigmaFunction2 {
 	cd $TMPNAME 
 	cd $SGTOCLEAN
 
-	coresControlFunction 1
+	coresControlFunction $CORES
 
 	echo "executing sigma wrapper module"	
 	${SIGMAHOME}/./sigma -c $SIGMACFILE -t $THREADS -w . &
@@ -716,8 +713,7 @@ function sigmaFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF2" >> $HOME/proccesscontrol
-
+	echo "$lastpid $CORES sigmaF2" >> /home/ecastron/proccesscontrol
 	coresunlockFunction
 
 	cd ..
@@ -728,12 +724,17 @@ function sigmaFunction2 {
 function constrainsFunction {
 
 	echo "wake up constrains"
+	#if [ -f /home/ecastron/corescontrol ];then
+	#	i=`tail -n 1 /home/ecastron/corescontrol |awk '{print $1}'`
+	#else
+	#	i=0
+	#fi
 	readstoFastqFunction
 
 	cd $TMPNAME
-
 	coresControlFunction $CORES
 
+	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
 	if [ -f "../metaphlan_$RFILE.dat" ];then
 		CSERROR=0
 		CSTOCLEAN=constrains_$RFILE
@@ -755,7 +756,7 @@ function constrainsFunction {
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES constrains" >> $HOME/proccesscontrol
+			echo "$lastpid $CORES constrains" >> /home/ecastron/proccesscontrol
 	else
 			echo "Constrains: no metaphlan2 file found, impossible continue"
 			CSERROR=1
@@ -763,6 +764,7 @@ function constrainsFunction {
 	coresunlockFunction
 
 	cd ..
+
 			
 }
 
@@ -998,6 +1000,7 @@ Minumum_Coverage_Length=$SIZE
 Minimum_Average_Coverage_Depth=3
 " > $TMPNAME/sigma_$RFILE""_config.cfg
 
+
 	fi
 
 }
@@ -1079,10 +1082,11 @@ function executeMetamix {
 	#$2 $executionpath
 	Rscript $2/step1.R $2/$1
 	Rscript $2/step2.R $2/step1.RData
-	if eval "mpirun -np 1 -quiet Rscript $2/step3.R $2/step2.RData"; then #this is just to return the control to master script (mpirun is a child)
-		Rscript step4.R $2/step2.RData $2/step3.RData $MXNAMES
+	Rscript $2/step3.R $2/step2.RData
+	if mpirun -np 1 --quiet Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES ;then
+		Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES
 	else
-		Rscript step4.R $2/step2.RData $2/step3.RData $MXNAMES
+		Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES
 	fi
 	mv $2/presentSpecies_assignedReads.tsv $2/../../$BACKUPNAME.assignedReads.tsv
 }
