@@ -1,5 +1,9 @@
 #make sure you have installed correctly the patogen detection software 
-set -ex
+if [[ "$@" =~ "--debug" ]]; then
+	set -ex
+else
+	set -e
+fi
 
 invalidband=1
 cfileband=0
@@ -607,7 +611,7 @@ function sigmaFunction {
 	echo "wake up sigma"
 	cd $TMPNAME
 
-	coresControlFunction $CORES
+	coresControlFunction 1
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
@@ -631,11 +635,11 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -p $CORES -w . &
+	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -w . &
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF1" >> /home/ecastron/proccesscontrol
+	echo "$lastpid 1 sigmaF1" >> /home/ecastron/proccesscontrol
 	coresunlockFunction
 	cd ..
 	cd ..
@@ -1082,12 +1086,8 @@ function executeMetamix {
 	#$2 $executionpath
 	Rscript $2/step1.R $2/$1
 	Rscript $2/step2.R $2/step1.RData
-	Rscript $2/step3.R $2/step2.RData
-	if mpirun -np 1 --quiet Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES ;then
-		Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES
-	else
-		Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES
-	fi
+	mpirun -np 1 Rscript $2/step3.R $2/step2.RData
+	Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES
 	mv $2/presentSpecies_assignedReads.tsv $2/../../$BACKUPNAME.assignedReads.tsv
 }
 #begin the code

@@ -51,16 +51,18 @@ This file contain several parameters to steer the script (most of them just serv
 
 	#CORES is the flag
 	#METHOD contain the software results that you want parse
+	
+	#Note: for metamix, you don't need specify a home directory.
 
 ##Examples
 
-	bash executionMethods.bash --cfile config.conf --rfile reads.1.fa,reads.2.fa --dbPS /Users/castrolab01/Desktop/SEPA/DB/BowtieIndex/db_B
+	bash executionMethods.bash --cfile config.conf --rfile reads.1.fa,reads.2.fa --dbPS SEPA/DB/BowtieIndex/db_B
 
 here we choose --dbPS flag, so in your config file PATHOSCOPE must be specify in METHODS. Also, if you want to filter the reads, pathoscope provide a function to do, so, you have to add the --PSfilterdb flag and we make the rest :D.
 
-	bash executionMethods.bash --cfile config.conf --rfile singlereads.fa --dbM2 /Users/castrolab01/Desktop/metaphlan2/makingDBmarkers/indexedbowtie2/mpa_v20_m200 --dbmarker /Users/castrolab01/Desktop/metaphlan2/db_v20/mpa_v20_m200.pkl
+	bash executionMethods.bash --cfile config.conf --rfile singlereads.fa --dbM2 metaphlan2/db_v20/mpa_v20_m200 --dbmarker metaphlan2/db_v20/mpa_v20_m200.pkl
 
-in this case --dbM2 refers to metaphlan database and it is provided in full path as --dbmarker (remember that), both flags are necesary if you specify METAPHLAN in METHODS in the config file.
+in this case --dbM2 refers to metaphlan database, --dbmarker the markers of database, both flags are necesary if you specify METAPHLAN in METHODS in the config file.
 
 if you have a lot of reads, you can execute executeMethods multiple times in independent process (&), the softwares will adjust them to cores (that you specified in the config file with CORES and THREADS flag):
 
