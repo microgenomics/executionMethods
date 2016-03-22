@@ -354,7 +354,7 @@ maxexe=$CORES
 lastpid=0
 function coresControlFunction {
 	request=$1
-if mkdir /home/ecastron/lockfolder_donttouch; then
+if mkdir /home/ecastron/lockfolder_donttouch >/dev/null 2>&1 ; then
 	if [ -f /home/ecastron/corescontrol ]; then
 		i=`tail -n1 /home/ecastron/corescontrol`
 	else
@@ -369,7 +369,7 @@ if mkdir /home/ecastron/lockfolder_donttouch; then
 	if [ $((i)) -ge $((maxexe)) ]; then
 
 		while kill -0 "$firstproc"; do
-			echo "waiting for proccess $firstproc"
+			#echo "waiting for proccess $firstproc"
             sleep 61
         done
         
@@ -670,8 +670,8 @@ function metamixFunction2 {
 
 
 	cd $TMPNAME
-
-	coresControlFunction 1
+	half=`echo "$CORES" |awk '{if($CORES>=12){printf "%d\n",$1/2}else{print 12}}'`
+	coresControlFunction $half #To allow only two execution at same time if cores>=12
 
 		if [ "$READS" == "paired" ]; then
 			cd metamix_$P1.$P2
@@ -1086,7 +1086,7 @@ function executeMetamix {
 	#$2 $executionpath
 	Rscript $2/step1.R $2/$1
 	Rscript $2/step2.R $2/step1.RData
-	mpirun -np 1 Rscript $2/step3.R $2/step2.RData
+	mpirun -np 1 --quiet Rscript $2/step3.R $2/step2.RData
 	Rscript $2/step4.R $2/step2.RData $2/step3.RData $MXNAMES
 	mv $2/presentSpecies_assignedReads.tsv $2/../../$BACKUPNAME.assignedReads.tsv
 }
