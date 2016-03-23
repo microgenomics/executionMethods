@@ -18,6 +18,7 @@ dbmarkerband=0
 sigmacfileband=0
 csfileband=0
 dbsgband=0
+dbkrband=0
 priorband=0
 PSFDB=""
 TOCLEAN=""
@@ -69,6 +70,10 @@ do
 		dbsgband=1
 		invalidband=0
 	;;
+	"--dbKR")
+		dbkrband=1
+		invalidband=0
+	;;
 	"--csfile")
 		csfileband=1
 		invalidband=0
@@ -97,6 +102,7 @@ do
 		echo "--MXnames metamix names translation, is a file with format 'ti name'"
 		echo "--dbSG sigma database folder (master directory)"
 		echo "--dbCS constrains database folder"
+		echo "--dbKR kraken database folder"
 		echo "note: you must provide sigma database folder in the sigma config file"
 		echo -e "\n#########################################################################################"
 		exit
@@ -162,6 +168,9 @@ do
 					"BOWTIE2HOME")
 						BOWTIE2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
 					;;
+					"KRAKENHOME")
+						KRAKENHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+					;;					
 				esac
 			done
 			statusband=$((statusband+1))
@@ -342,6 +351,19 @@ do
 			invalid=1
 		fi
 
+
+		if [ $((dbkrband)) -eq 1 ]; then
+			dbkrband=0
+			if [ -d $i ]; then
+				cd $i
+				DBKR=`pwd`
+				cd $INITIALPATH
+			else
+				echo "$i file no exist"
+				exit
+			fi
+		fi
+
 	;;
 	esac
 done
@@ -354,16 +376,16 @@ maxexe=$CORES
 lastpid=0
 function coresControlFunction {
 	request=$1
-if mkdir /home/ecastron/lockfolder_donttouch >/dev/null 2>&1 ; then
-	if [ -f /home/ecastron/corescontrol ]; then
-		i=`tail -n1 /home/ecastron/corescontrol`
+if mkdir $HOME/lockfolder_donttouch > /dev/null 2>&1; then
+	if [ -f $HOME/corescontrol ]; then
+		i=`tail -n1 $HOME/corescontrol`
 	else
 		i=0
 	fi
 
-	if [ -f /home/ecastron/proccesscontrol ];then
-		firstproc=`head -n1 /home/ecastron/proccesscontrol |awk '{print $1}'`
-		firstcore=`head -n1 /home/ecastron/proccesscontrol |awk '{print $2}'`
+	if [ -f $HOME/proccesscontrol ];then
+		firstproc=`head -n1 $HOME/proccesscontrol |awk '{print $1}'`
+		firstcore=`head -n1 $HOME/proccesscontrol |awk '{print $2}'`
 	fi
 
 	if [ $((i)) -ge $((maxexe)) ]; then
@@ -373,19 +395,19 @@ if mkdir /home/ecastron/lockfolder_donttouch >/dev/null 2>&1 ; then
             sleep 61
         done
         
-        sed "1d" /home/ecastron/proccesscontrol >toreplace
-        rm /home/ecastron/proccesscontrol
-        mv toreplace /home/ecastron/proccesscontrol
+        sed "1d" $HOME/proccesscontrol >toreplace
+        rm $HOME/proccesscontrol
+        mv toreplace $HOME/proccesscontrol
 
-        sed "1d" /home/ecastron/corescontrol >toreplace
-        rm /home/ecastron/corescontrol
-        mv toreplace /home/ecastron/corescontrol
+        sed "1d" $HOME/corescontrol >toreplace
+        rm $HOME/corescontrol
+        mv toreplace $HOME/corescontrol
 
 		i=`echo $i $firstcore |awk '{print $1-$2}'`
-		echo "$i" >>/home/ecastron/corescontrol
+		echo "$i" >>$HOME/corescontrol
 
 	else
-		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>/home/ecastron/corescontrol
+		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$HOME/corescontrol
 	fi
 
 else
@@ -394,7 +416,7 @@ else
 fi
 }
 function coresunlockFunction {
-	rm -rf /home/ecastron/lockfolder_donttouch
+	rm -rf $HOME/lockfolder_donttouch
 }
 function fastalockFunction {
 	if mkdir fastalock; then
@@ -483,7 +505,7 @@ function pathoscopeFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 pathoscopeF1" >> /home/ecastron/proccesscontrol
+		echo "$lastpid 1 pathoscopeF1" >> $HOME/proccesscontrol
 		coresunlockFunction
 
 		cd ..
@@ -512,7 +534,7 @@ function metaphlanFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metaphlanF1" >> /home/ecastron/proccesscontrol
+		echo "$lastpid 1 metaphlanF1" >> $HOME/proccesscontrol
 		coresunlockFunction
 		
 		cd ..
@@ -536,34 +558,31 @@ function metamixFunction {
 					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					
 					if mkdir $TMPNAME/metamix_$P1.$P2; then #we make new folder because is easier to clean after execution
-						cp $PAIREND1 $TMPNAME/metamix_$P1.$P2/$P1
-						cp $PAIREND2 $TMPNAME/metamix_$P1.$P2/$P2
+						echo "folder metamix_$P1.$P2 created"
 					else
 						echo "Metamix: cleaning previous run"
 						rm -r $TMPNAME/metamix_$P1.$P2
 						mkdir $TMPNAME/metamix_$P1.$P2
-						cp $PAIREND1 $TMPNAME/metamix_$P1.$P2/$P1
-						cp $PAIREND2 $TMPNAME/metamix_$P1.$P2/$P2
 					fi
 
 					cd $TMPNAME
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1
-					${BLASTHOME}/blastn -query $P1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab &
+					${BLASTHOME}/blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_1" >> /home/ecastron/proccesscontrol
+					echo "$lastpid 1 metamixF1_1" >> $HOME/proccesscontrol
 					coresunlockFunction
 
 
 					coresControlFunction 1
-					${BLASTHOME}/blastn -query $P2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab &
+					${BLASTHOME}/blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_2" >> /home/ecastron/proccesscontrol
+					echo "$lastpid 1 metamixF1_2" >> $HOME/proccesscontrol
 					coresunlockFunction
 
 			        cd ..
@@ -581,12 +600,11 @@ function metamixFunction {
 			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 
 			if mkdir $TMPNAME/metamix_$SINGLE; then #we make new folder because is easier to clean after execution
-				cp $IRFILE $TMPNAME/metamix_$SINGLE/$SINGLE
+				echo "folder metamix_$SINGLE created"
 			else
 				echo "Metamix: cleaning previous run"
 				rm -r $TMPNAME/metamix_$SINGLE
 				mkdir $TMPNAME/metamix_$SINGLE
-				cp $IRFILE $TMPNAME/metamix_$SINGLE/$SINGLE
 			fi
 
 			cd $TMPNAME
@@ -594,11 +612,11 @@ function metamixFunction {
 
 			coresControlFunction $CORES
 
-			blastn -query $SINGLE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab &
+			blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES metamixF1" >> /home/ecastron/proccesscontrol
+			echo "$lastpid $CORES metamixF1" >> $HOME/proccesscontrol
 			coresunlockFunction
 			cd ..
 			cd ..
@@ -639,11 +657,55 @@ function sigmaFunction {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 sigmaF1" >> /home/ecastron/proccesscontrol
+	echo "$lastpid 1 sigmaF1" >> $HOME/proccesscontrol
 	coresunlockFunction
 	cd ..
 	cd ..
 
+}
+
+function krakenFunction {
+
+	echo "wake up kraken"
+	cd $TMPNAME
+	if [ "$READS" == "paired" ]; then
+		PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$1}'`
+		PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$2}'`
+		#next, check the files (tolerance to missing files)
+		if [ -f "$PAIREND1" ];then
+			if [ -f "$PAIREND2" ];then
+					
+				P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
+				P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+								
+				coresControlFunction 1
+				${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken &
+				lastpid=$!
+				pids[${pindex}]=$lastpid
+				pindex=$((pindex+1))
+				echo "$lastpid 1 krakenF1" >> $HOME/proccesscontrol
+				coresunlockFunction
+		
+			else
+				echo "$PAIREND2 no exist"
+				exit
+			fi
+		else
+			echo "$PAIREND1 no exist"
+			exit
+		fi
+	else
+		coresControlFunction 1
+		SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+		${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken &
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid 1 krakenF1" >> $HOME/proccesscontrol
+		coresunlockFunction
+	fi
+
+	cd ..
 }
 
 function pathoscopeFunction2 {
@@ -660,7 +722,7 @@ function pathoscopeFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 pathoscopeF2" >> /home/ecastron/proccesscontrol
+	echo "$lastpid 1 pathoscopeF2" >> $HOME/proccesscontrol
 	coresunlockFunction
 	cd ..
 
@@ -699,7 +761,7 @@ function metamixFunction2 {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metamixF2" >> /home/ecastron/proccesscontrol
+		echo "$lastpid 1 metamixF2" >> $HOME/proccesscontrol
 
 		coresunlockFunction
 		cd ..
@@ -717,7 +779,7 @@ function sigmaFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF2" >> /home/ecastron/proccesscontrol
+	echo "$lastpid $CORES sigmaF2" >> $HOME/proccesscontrol
 	coresunlockFunction
 
 	cd ..
@@ -728,8 +790,8 @@ function sigmaFunction2 {
 function constrainsFunction {
 
 	echo "wake up constrains"
-	#if [ -f /home/ecastron/corescontrol ];then
-	#	i=`tail -n 1 /home/ecastron/corescontrol |awk '{print $1}'`
+	#if [ -f $HOME/corescontrol ];then
+	#	i=`tail -n 1 $HOME/corescontrol |awk '{print $1}'`
 	#else
 	#	i=0
 	#fi
@@ -760,7 +822,7 @@ function constrainsFunction {
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES constrains" >> /home/ecastron/proccesscontrol
+			echo "$lastpid $CORES constrains" >> $HOME/proccesscontrol
 	else
 			echo "Constrains: no metaphlan2 file found, impossible continue"
 			CSERROR=1
@@ -770,6 +832,34 @@ function constrainsFunction {
 	cd ..
 
 			
+}
+
+function krakenFunction2 {
+
+	cd $TMPNAME
+
+	if [ "$READS" == "paired" ]; then
+		coresControlFunction 1
+		${KRAKENHOME}/kraken-translate --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken &
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid 1 krakenF2" >> $HOME/proccesscontrol
+		coresunlockFunction
+
+	else
+		coresControlFunction 1
+		${KRAKENHOME}/kraken-translate --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken &
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid 1 krakenF2" >> $HOME/proccesscontrol
+		coresunlockFunction
+
+	fi
+
+	cd ..
+
 }
 
 function lastStepFunction {
@@ -794,9 +884,9 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 		
 		if [ "$READS" == "paired" ]; then
-			rm -rf $TMPNAME/metamix_$P1.$P2
+			rm -rf $TMPNAME/metamix_$P1.$P2.kraken
 		else
-			rm -rf $TMPNAME/metamix_$SINGLE
+			rm -rf $TMPNAME/metamix_$SINGLE.kraken
 		fi
 	fi
 	
@@ -809,6 +899,16 @@ function lastStepFunction {
 		mv $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
+	fi
+
+	if [[ "$METHOD" =~ "KRAKEN" ]]; then
+		if [ "$READS" == "paired" ]; then
+			#rm -rf $TMPNAME/kraken_$P1.$P2.kraken
+			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
+		else
+			rm -rf $TMPNAME/kraken_$SINGLE.kraken
+			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
+		fi
 	fi
 
 	echo "Done :D"
@@ -834,12 +934,20 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line (--dbM2 and --dbmarker)\n"`
 			pass=$((pass+1))
 		fi
+		if [ "$METAPHLAN2HOME" == "" ];then
+			errormessage=`echo -e "$errormessage no METAPHLAN2HOME\n"`
+			pass=$((pass+1))
+		fi
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 
 		if [ "$DBPS" == "" ];then
 			errormessage=`echo -e "$errormessage You must provide a database (bowtie2 index), for pathoscope (--dbPS)\n"`
+			pass=$((pass+1))
+		fi
+		if [ "$PATHOSCOPEHOME" == "" ];then
+			errormessage=`echo -e "$errormessage no PATHOSCOPEHOME\n"`
 			pass=$((pass+1))
 		fi
 	fi
@@ -870,6 +978,11 @@ function criticalvariablesFunction {
 #	fi
 
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
+
+		if [ "$SIGMAHOME" == "" ];then
+			errormessage=`echo -e "$errormessage no SIGMAHOME\n"`
+			pass=$((pass+1))
+		fi
 
 		if [ "$SIGMACFILE" == "" ];then
 
@@ -924,6 +1037,17 @@ function criticalvariablesFunction {
 			else
 				RTYPE="SINGLE"
 			fi
+		fi
+	fi
+
+	if [[ "$METHOD" =~ "KRAKEN" ]]; then
+		if [ "$DBKR" == "" ];then
+			errormessage=`echo -e "$errormessage you must provide a database for kraken\n"`
+			pass=$((pass+1))
+		fi
+		if [ "$KRAKENHOME" == "" ];then
+			errormessage=`echo -e "$errormessage no KRAKENHOME\n"`
+			pass=$((pass+1))
 		fi
 	fi
 
@@ -1123,6 +1247,9 @@ if [ $((statusband)) -ge 1 ]; then
 					"CONSTRAINS")
 						#waiting for metaphlan work
 					;;
+					"KRAKEN")
+						krakenFunction
+					;;
 				esac
 			done
 		
@@ -1156,8 +1283,12 @@ if [ $((statusband)) -ge 1 ]; then
 					"CONSTRAINS")
 						constrainsFunction
 					;;
+					"KRAKEN")
+						krakenFunction2
+					;;
 				esac
 			done
+			echo "waiting for classification work"
 			for pid in "${pids[@]}"
 			do
 			   wait $pid

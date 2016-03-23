@@ -9,7 +9,13 @@ executionMethods Module is the second module from SEPA (Simulation, Execution, P
 
 * Bash >= v4 (tested in Linux and MacOSX)
 * Perl >= v5
-* Pathogen detection software installed (works on: Pathoscope2, Metaphlan2, Sigma v1.0.2, Metamix v0.2, Constrains v0.1.0).
+* Pathogen detection software installed (works on: 
+	* Pathoscope v2
+	* Metaphlan v2
+	* Sigma v1.0.2
+	* Metamix v0.2
+	* Constrains v0.1.0
+	* Kraken v0.10.5).
 
 ##Usage
 
@@ -82,7 +88,7 @@ executionMethods just move the files that are made by the softwares, next, put t
 * Metamix: metamix\_readname.tsv
 * Sigma: sigma\_readname.gvector
 * Constrains: constrains\_readname.profiles
-* Kraken: not yet
+* Kraken: kraken\_trans\_deadname.kraken
 
 ##Warnings
-* Your computer may freeze due to the high compute if you run a lot of execution in parallel (we recommend execute this module in a cluster).
+Some extra files will generate in your $HOME folder (corescontrol and proccesscontrol), don't touch this files while the programs runs and delete manually after that.
