@@ -569,7 +569,7 @@ function metamixFunction {
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1
-					${BLASTHOME}/blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab &
+					${BLASTHOME}/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -578,7 +578,7 @@ function metamixFunction {
 
 
 					coresControlFunction 1
-					${BLASTHOME}/blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab &
+					${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -732,8 +732,8 @@ function metamixFunction2 {
 
 
 	cd $TMPNAME
-	half=`echo "$CORES" |awk '{if($CORES>=12){printf "%d\n",$1/2}else{print 12}}'`
-	coresControlFunction $half #To allow only two execution at same time if cores>=12
+
+	coresControlFunction 12
 
 		if [ "$READS" == "paired" ]; then
 			cd metamix_$P1.$P2
