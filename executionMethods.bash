@@ -369,7 +369,7 @@ do
 done
 
 #################################################
-declare -A pids
+declare pids
 pindex=0
 maxexe=$CORES
 #################################################
@@ -390,7 +390,7 @@ if mkdir $HOME/lockfolder_donttouch > /dev/null 2>&1; then
 
 	if [ $((i)) -ge $((maxexe)) ]; then
 
-		while kill -0 "$firstproc"; do
+		while [[ ( -d /proc/$firstproc ) && ( -z "grep zombie /proc/$firstproc/status" ) ]]; do
 			#echo "waiting for proccess $firstproc"
             sleep 61
         done
@@ -840,7 +840,7 @@ function krakenFunction2 {
 
 	if [ "$READS" == "paired" ]; then
 		coresControlFunction 1
-		${KRAKENHOME}/kraken-translate --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken &
+		${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -849,7 +849,7 @@ function krakenFunction2 {
 
 	else
 		coresControlFunction 1
-		${KRAKENHOME}/kraken-translate --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken &
+		${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -905,9 +905,15 @@ function lastStepFunction {
 		if [ "$READS" == "paired" ]; then
 			#rm -rf $TMPNAME/kraken_$P1.$P2.kraken
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
+			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > tmp
+			rm kraken_trans_$P1.$P2.kraken
+			mv tmp kraken_trans_$P1.$P2.kraken
 		else
 			rm -rf $TMPNAME/kraken_$SINGLE.kraken
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
+			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > tmp
+			rm kraken_trans_$SINGLE.kraken
+			mv tmp kraken_trans_$SINGLE.kraken
 		fi
 	fi
 
@@ -1042,7 +1048,7 @@ function criticalvariablesFunction {
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
 		if [ "$DBKR" == "" ];then
-			errormessage=`echo -e "$errormessage you must provide a database for kraken\n"`
+			errormessage=`echo -e "$errormessage you must provide a database (folder) for kraken (--dbKR)\n"`
 			pass=$((pass+1))
 		fi
 		if [ "$KRAKENHOME" == "" ];then
@@ -1260,7 +1266,7 @@ if [ $((statusband)) -ge 1 ]; then
 			   wait $pid
 			done
 			unset pids
-			declare -A pids
+			declare pids
 			pindex=0
 			#to sure we are in $INITIALPATH
 			cd $INITIALPATH
