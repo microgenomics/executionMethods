@@ -905,15 +905,15 @@ function lastStepFunction {
 		if [ "$READS" == "paired" ]; then
 			#rm -rf $TMPNAME/kraken_$P1.$P2.kraken
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
-			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > tmp
+			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > $P1.$P2.kraken.tmp
 			rm kraken_trans_$P1.$P2.kraken
-			mv tmp kraken_trans_$P1.$P2.kraken
+			mv $P1.$P2.kraken.tmp kraken_trans_$P1.$P2.kraken
 		else
 			rm -rf $TMPNAME/kraken_$SINGLE.kraken
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
-			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > tmp
+			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > $SINGLE.kraken.tmp
 			rm kraken_trans_$SINGLE.kraken
-			mv tmp kraken_trans_$SINGLE.kraken
+			mv $SINGLE.kraken.tmp kraken_trans_$SINGLE.kraken
 		fi
 	fi
 

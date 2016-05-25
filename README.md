@@ -91,4 +91,5 @@ executionMethods just move the files that are made by the softwares, next, put t
 * Kraken: kraken\_trans\_deadname.kraken
 
 ##Warnings
-Some extra files will generate in your $HOME folder (corescontrol and proccesscontrol), don't touch this files while the programs runs and delete manually after that.
+* Some extra files will generate in your $HOME folder (corescontrol and proccesscontrol), don't touch this files while the programs runs and delete manually after that.
+* Make sure you have RAM enough to run your proccess.
