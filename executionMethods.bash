@@ -170,9 +170,15 @@ do
 					;;
 					"KRAKENHOME")
 						KRAKENHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
-					;;					
+					;;
+					"COORDFOLDER")
+						COORDFOLDER=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+					;;				
 				esac
 			done
+			if [ "$COORDFOLDER" == "" ];then
+				COORDFOLDER=$HOME
+			fi
 			statusband=$((statusband+1))
 			cfileband=0
 		fi
@@ -376,16 +382,16 @@ maxexe=$CORES
 lastpid=0
 function coresControlFunction {
 	request=$1
-if mkdir $HOME/lockfolder_donttouch > /dev/null 2>&1; then
-	if [ -f $HOME/corescontrol ]; then
-		i=`tail -n1 $HOME/corescontrol`
+if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
+	if [ -f $COORDFOLDER/corescontrol ]; then
+		i=`tail -n1 $COORDFOLDER/corescontrol`
 	else
 		i=0
 	fi
 
-	if [ -f $HOME/proccesscontrol ];then
-		firstproc=`head -n1 $HOME/proccesscontrol |awk '{print $1}'`
-		firstcore=`head -n1 $HOME/proccesscontrol |awk '{print $2}'`
+	if [ -f $COORDFOLDER/proccesscontrol ];then
+		firstproc=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $1}'`
+		firstcore=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $2}'`
 	fi
 
 	if [ $((i)) -ge $((maxexe)) ]; then
@@ -395,19 +401,21 @@ if mkdir $HOME/lockfolder_donttouch > /dev/null 2>&1; then
             sleep 61
         done
         
-        sed "1d" $HOME/proccesscontrol >toreplace
-        rm $HOME/proccesscontrol
-        mv toreplace $HOME/proccesscontrol
+        touch $COORDFOLDER/proccesscontrol
+        sed "1d" $COORDFOLDER/proccesscontrol >toreplace
+        rm $COORDFOLDER/proccesscontrol
+        mv toreplace $COORDFOLDER/proccesscontrol
 
-        sed "1d" $HOME/corescontrol >toreplace
-        rm $HOME/corescontrol
-        mv toreplace $HOME/corescontrol
+        touch $COORDFOLDER/corescontrol
+        sed "1d" $COORDFOLDER/corescontrol >toreplace
+        rm $COORDFOLDER/corescontrol
+        mv toreplace $COORDFOLDER/corescontrol
 
 		i=`echo $i $firstcore |awk '{print $1-$2}'`
-		echo "$i" >>$HOME/corescontrol
+		echo "$i" >>$COORDFOLDER/corescontrol
 
 	else
-		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$HOME/corescontrol
+		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$COORDFOLDER/corescontrol
 	fi
 
 else
@@ -416,7 +424,7 @@ else
 fi
 }
 function coresunlockFunction {
-	rm -rf $HOME/lockfolder_donttouch
+	rm -rf $COORDFOLDER/lockfolder_donttouch
 }
 function fastalockFunction {
 	if mkdir fastalock; then
@@ -505,7 +513,7 @@ function pathoscopeFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 pathoscopeF1" >> $HOME/proccesscontrol
+		echo "$lastpid 1 pathoscopeF1" >> $COORDFOLDER/proccesscontrol
 		coresunlockFunction
 
 		cd ..
@@ -534,7 +542,7 @@ function metaphlanFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metaphlanF1" >> $HOME/proccesscontrol
+		echo "$lastpid 1 metaphlanF1" >> $COORDFOLDER/proccesscontrol
 		coresunlockFunction
 		
 		cd ..
@@ -573,7 +581,7 @@ function metamixFunction {
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_1" >> $HOME/proccesscontrol
+					echo "$lastpid 1 metamixF1_1" >> $COORDFOLDER/proccesscontrol
 					coresunlockFunction
 
 
@@ -582,7 +590,7 @@ function metamixFunction {
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
-					echo "$lastpid 1 metamixF1_2" >> $HOME/proccesscontrol
+					echo "$lastpid 1 metamixF1_2" >> $COORDFOLDER/proccesscontrol
 					coresunlockFunction
 
 			        cd ..
@@ -616,7 +624,7 @@ function metamixFunction {
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES metamixF1" >> $HOME/proccesscontrol
+			echo "$lastpid $CORES metamixF1" >> $COORDFOLDER/proccesscontrol
 			coresunlockFunction
 			cd ..
 			cd ..
@@ -657,7 +665,7 @@ function sigmaFunction {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 sigmaF1" >> $HOME/proccesscontrol
+	echo "$lastpid 1 sigmaF1" >> $COORDFOLDER/proccesscontrol
 	coresunlockFunction
 	cd ..
 	cd ..
@@ -683,7 +691,7 @@ function krakenFunction {
 				lastpid=$!
 				pids[${pindex}]=$lastpid
 				pindex=$((pindex+1))
-				echo "$lastpid 1 krakenF1" >> $HOME/proccesscontrol
+				echo "$lastpid 1 krakenF1" >> $COORDFOLDER/proccesscontrol
 				coresunlockFunction
 		
 			else
@@ -701,7 +709,7 @@ function krakenFunction {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 krakenF1" >> $HOME/proccesscontrol
+		echo "$lastpid 1 krakenF1" >> $COORDFOLDER/proccesscontrol
 		coresunlockFunction
 	fi
 
@@ -722,7 +730,7 @@ function pathoscopeFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 pathoscopeF2" >> $HOME/proccesscontrol
+	echo "$lastpid 1 pathoscopeF2" >> $COORDFOLDER/proccesscontrol
 	coresunlockFunction
 	cd ..
 
@@ -761,7 +769,7 @@ function metamixFunction2 {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 metamixF2" >> $HOME/proccesscontrol
+		echo "$lastpid 1 metamixF2" >> $COORDFOLDER/proccesscontrol
 
 		coresunlockFunction
 		cd ..
@@ -779,7 +787,7 @@ function sigmaFunction2 {
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF2" >> $HOME/proccesscontrol
+	echo "$lastpid $CORES sigmaF2" >> $COORDFOLDER/proccesscontrol
 	coresunlockFunction
 
 	cd ..
@@ -790,8 +798,8 @@ function sigmaFunction2 {
 function constrainsFunction {
 
 	echo "wake up constrains"
-	#if [ -f $HOME/corescontrol ];then
-	#	i=`tail -n 1 $HOME/corescontrol |awk '{print $1}'`
+	#if [ -f $COORDFOLDER/corescontrol ];then
+	#	i=`tail -n 1 $COORDFOLDER/corescontrol |awk '{print $1}'`
 	#else
 	#	i=0
 	#fi
@@ -822,7 +830,7 @@ function constrainsFunction {
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
-			echo "$lastpid $CORES constrains" >> $HOME/proccesscontrol
+			echo "$lastpid $CORES constrains" >> $COORDFOLDER/proccesscontrol
 	else
 			echo "Constrains: no metaphlan2 file found, impossible continue"
 			CSERROR=1
@@ -844,7 +852,7 @@ function krakenFunction2 {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 krakenF2" >> $HOME/proccesscontrol
+		echo "$lastpid 1 krakenF2" >> $COORDFOLDER/proccesscontrol
 		coresunlockFunction
 
 	else
@@ -853,7 +861,7 @@ function krakenFunction2 {
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
-		echo "$lastpid 1 krakenF2" >> $HOME/proccesscontrol
+		echo "$lastpid 1 krakenF2" >> $COORDFOLDER/proccesscontrol
 		coresunlockFunction
 
 	fi
