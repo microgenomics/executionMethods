@@ -386,12 +386,16 @@ if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
 	if [ -f $COORDFOLDER/corescontrol ]; then
 		i=`tail -n1 $COORDFOLDER/corescontrol`
 	else
+		touch $COORDFOLDER/corescontrol
 		i=0
 	fi
 
 	if [ -f $COORDFOLDER/proccesscontrol ];then
 		firstproc=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $1}'`
 		firstcore=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $2}'`
+	else
+		firstproc="foo_proccess_foo"
+		touch $COORDFOLDER/proccesscontrol
 	fi
 
 	if [ $((i)) -ge $((maxexe)) ]; then
@@ -401,12 +405,10 @@ if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
             sleep 61
         done
         
-        touch $COORDFOLDER/proccesscontrol
         sed "1d" $COORDFOLDER/proccesscontrol >toreplace
         rm $COORDFOLDER/proccesscontrol
         mv toreplace $COORDFOLDER/proccesscontrol
 
-        touch $COORDFOLDER/corescontrol
         sed "1d" $COORDFOLDER/corescontrol >toreplace
         rm $COORDFOLDER/corescontrol
         mv toreplace $COORDFOLDER/corescontrol
