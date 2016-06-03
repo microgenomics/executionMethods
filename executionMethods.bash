@@ -413,7 +413,7 @@ if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
         rm $COORDFOLDER/corescontrol
         mv toreplace $COORDFOLDER/corescontrol
 
-		i=`echo $i $firstcore |awk '{print $1-$2}'`
+		i=`echo "$i $firstcore" |awk '{print $1-$2}'`
 		echo "$i" >>$COORDFOLDER/corescontrol
 
 	else
@@ -885,10 +885,15 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
+		newpatname=`echo "pathoscope_$RFILE.sam-sam-report.tsv" |awk -F "," '{print $1"."$2}'`
+		mv pathoscope_$RFILE.sam-sam-report.tsv $newpatname
+
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
+		newmetname=`echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}'`
+		mv metaphlan_$RFILE.dat $newmetname
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
@@ -903,12 +908,16 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
+		newsigname=`echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}'`
+		mv $SGTOCLEAN.gvector.txt $newsigname
 	fi
 
 	if [[ "$METHOD" =~ "CONSTRAINS" ]] && [ "$CSERROR" -eq 0 ]; then
 		mv $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
+		newconname=`echo "$CSTOCLEAN.profiles" |awk -F "," '{print $1"."$2}'`
+		mv $CSTOCLEAN.profiles $newconname
 	fi
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
@@ -917,13 +926,13 @@ function lastStepFunction {
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
 			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > $P1.$P2.kraken.tmp
 			rm kraken_trans_$P1.$P2.kraken
-			mv $P1.$P2.kraken.tmp kraken_trans_$P1.$P2.kraken
+			mv $P1.$P2.kraken.tmp kraken_$P1.$P2.kraken
 		else
 			rm -rf $TMPNAME/kraken_$SINGLE.kraken
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
 			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > $SINGLE.kraken.tmp
 			rm kraken_trans_$SINGLE.kraken
-			mv $SINGLE.kraken.tmp kraken_trans_$SINGLE.kraken
+			mv $SINGLE.kraken.tmp kraken_$SINGLE.kraken
 		fi
 	fi
 
