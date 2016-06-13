@@ -811,9 +811,10 @@ function constrainsFunction {
 	coresControlFunction $CORES
 
 	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
-	if [ -f "../metaphlan_$RFILE.dat" ];then
+	newcsname=`echo metaphlan_$RFILE.dat |awk -F "," '{print $1"."$2}'`
+	if [ -f "../$newcsname" ];then
 		CSERROR=0
-		CSTOCLEAN=constrains_$RFILE
+		CSTOCLEAN=`echo "$RFILE" |awk 'BEGIN{FS=","}{print "constrains_"$1"."$2}'`
 
 		if [ "$READS" == "paired" ]; then
 			F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
@@ -821,11 +822,11 @@ function constrainsFunction {
 			echo "sample: $RFILE
 			fq1: $F1
 			fq2: $F2
-			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+			metaphlan: ../$newcsname" > cs_config_$RFILE.conf
 		else
 			echo "sample: $RFILE 
 			fq: $RFILE
-			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+			metaphlan: ../$newcsname" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
 			python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
@@ -834,7 +835,7 @@ function constrainsFunction {
 			pindex=$((pindex+1))
 			echo "$lastpid $CORES constrains" >> $COORDFOLDER/proccesscontrol
 	else
-			echo "Constrains: no metaphlan2 file found, impossible continue"
+			echo "Constrains: no $newcsname file found, impossible continue"
 			CSERROR=1
 	fi
 	coresunlockFunction
@@ -916,8 +917,8 @@ function lastStepFunction {
 		mv $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
-		newconname=`echo "$CSTOCLEAN.profiles" |awk -F "," '{print $1"."$2}'`
-		mv $CSTOCLEAN.profiles $newconname
+		#newconname=`echo "$CSTOCLEAN.profiles" |awk -F "," '{print $1"."$2}'`
+		#mv $CSTOCLEAN.profiles $newconname
 	fi
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
