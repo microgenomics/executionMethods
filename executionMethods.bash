@@ -504,11 +504,11 @@ function pathoscopeFunction {
 
 
 		if [ "$PSFDB" == "" ];then
-			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
+			{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		else
-			python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS &
+			{ time python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
@@ -724,10 +724,10 @@ function pathoscopeFunction2 {
 
 	coresControlFunction 1
 	if [ "$PRIOR" == "" ];then
-		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE &
+		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
 
 	else
-		python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR &
+		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
 	fi
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -884,10 +884,12 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
+		cat $TMPNAME/TimePSf1_$RFILE $TMPNAME/TimePSf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimePS_$RFILE
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
 		newpatname=`echo "pathoscope_$RFILE.sam-sam-report.tsv" |awk -F "," '{print $1"."$2}'`
 		mv pathoscope_$RFILE.sam-sam-report.tsv $newpatname
+		
 
 	fi
 	
