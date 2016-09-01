@@ -540,7 +540,7 @@ function metaphlanFunction {
 			rm -f bowtieout$RFILE.bz2
 		fi
 
-		python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat &
+		{ time python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$RFILE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -754,7 +754,7 @@ function metamixFunction2 {
 			rm blastOut$P1.tab blastOut$P2.tab
 			executionpath=`pwd`
 
-			executeMetamix blastOut$P1.$P2.tab $executionpath &
+			 blastOut$P1.$P2.tab $executionpath &
 
 			cd ..
 
@@ -900,6 +900,7 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
+		mv $TMPNAME/TimeM2_$RFILE .
 		
 		if [ "$READS" == "paired" ]; then
 			rm -rf $TMPNAME/metamix_$P1.$P2.kraken
