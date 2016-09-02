@@ -157,7 +157,7 @@ do
 						BLASTHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
 					"METAPHLAN2HOME")
-						METAPHLAN2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						METAPHLAN2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`				
 					;;
 					"CONSTRAINSHOME")
 						CONSTRAINSHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
@@ -215,6 +215,10 @@ do
 		fi
 		
 		if [ $((dbm2band)) -eq 1 ]; then
+				if [ ! -f $METAPHLAN2HOME/metaphlan2.py ]; then
+					echo "metaphlan2.py no exist in $METAPHLAN2HOME"
+					exit
+				fi	
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				DBM2=`echo "$i" |rev |cut -d "/" -f 1 |rev`
@@ -540,7 +544,7 @@ function metaphlanFunction {
 			rm -f bowtieout$RFILE.bz2
 		fi
 
-		{ time python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$RFILE &
+		{ time -p python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$RFILE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -579,7 +583,7 @@ function metamixFunction {
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1
-					${BLASTHOME}/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab &
+					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeMXf1_$PAIREND1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -588,7 +592,7 @@ function metamixFunction {
 
 
 					coresControlFunction 1
-					${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab &
+					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeMXf1_$PAIREND2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -622,7 +626,7 @@ function metamixFunction {
 
 			coresControlFunction $CORES
 
-			blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab &
+			{ time -p ${BLASTHOME}/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeMXf1_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -743,9 +747,11 @@ function metamixFunction2 {
 
 	cd $TMPNAME
 
-	coresControlFunction 12
+	coresControlFunction 12 #parallel tempering requires 12 cores
 
 		if [ "$READS" == "paired" ]; then
+			cat TimeMXf1_$PAIREND1 TimeMXf1_$PAIREND2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMXf1_$P1.$P2
+			rm -f TimeMXf1_$PAIREND1 TimeMXf1_$PAIREND2
 			cd metamix_$P1.$P2
 			BACKUPNAME=`echo "metamix_$P1.$P2"`
 			metamixCodeFunction
@@ -754,7 +760,7 @@ function metamixFunction2 {
 			rm blastOut$P1.tab blastOut$P2.tab
 			executionpath=`pwd`
 
-			 blastOut$P1.$P2.tab $executionpath &
+			{ time -p executeMetamix blastOut$P1.$P2.tab $executionpath 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$P1.$P2 &
 
 			cd ..
 
@@ -764,7 +770,7 @@ function metamixFunction2 {
 			echo "execute metamix R function"
 			executionpath=`pwd`
 
-			executeMetamix blastOut$SINGLE.tab $executionpath &
+			{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
 
 			cd ..
 		fi
@@ -901,10 +907,11 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		
 		if [ "$READS" == "paired" ]; then
+			cat $TMPNAME/TimeMXf1_$P1.$P2 $TMPNAME/TimeMXf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMX_$P1.$P2
 			rm -rf $TMPNAME/metamix_$P1.$P2.kraken
 		else
+			cat $TMPNAME/TimeMXf1_$SINGLE $TMPNAME/TimeMXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMX_$SINGLE
 			rm -rf $TMPNAME/metamix_$SINGLE.kraken
 		fi
 	fi
