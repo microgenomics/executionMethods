@@ -894,13 +894,13 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
+		mv $TMPNAME/TimeM2_$RFILE .
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 		newmetname=`echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}'`
 		mv metaphlan_$RFILE.dat $newmetname
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
-		mv $TMPNAME/TimeM2_$RFILE .
 		
 		if [ "$READS" == "paired" ]; then
 			rm -rf $TMPNAME/metamix_$P1.$P2.kraken
