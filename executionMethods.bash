@@ -499,11 +499,8 @@ function pathoscopeFunction {
 
 		echo "wake up pathoscope"
 		FILE=$IRFILE
-
 		readstoFastqFunction
-
 		cd $TMPNAME
-
 		coresControlFunction 1
 
 
@@ -536,7 +533,6 @@ function metaphlanFunction {
 
 		echo "wake up metaphlan"
 		readstoFastqFunction
-		
 		cd $TMPNAME
 
 		coresControlFunction 1
@@ -583,7 +579,7 @@ function metamixFunction {
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1
-					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P1.tab 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeMXf1_$PAIREND1 &
+					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$PAIREND1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -592,7 +588,7 @@ function metamixFunction {
 
 
 					coresControlFunction 1
-					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS -out blastOut$P2.tab 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeMXf1_$PAIREND2 &
+					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$PAIREND2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -626,7 +622,7 @@ function metamixFunction {
 
 			coresControlFunction $CORES
 
-			{ time -p ${BLASTHOME}/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES -out blastOut$SINGLE.tab 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeMXf1_$SINGLE &
+			{ time -p ${BLASTHOME}/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -1006,13 +1002,6 @@ function criticalvariablesFunction {
 		fi
 	fi
 
-#	if [[ "$METHOD" =~ "CONSTRAINS" ]]; then
-#		if [[ ! "$METHOD" =~ "METAPHLAN" ]]; then
-#			errormessage=`echo -e "$errormessage METAPHLAN is needed to CONSTRAINS work\n"`
-#			pass=$((pass+1))
-#		fi
-#	fi
-
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 
 		if [ "$SIGMAHOME" == "" ];then
@@ -1133,8 +1122,6 @@ Minumum_Coverage_Length=$SIZE
 Minimum_Average_Coverage_Depth=3
 " > $TMPNAME/sigma_$RFILE""_config.cfg
 		
-
-
 	else
 		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
 		readstoFastqFunction
@@ -1163,7 +1150,6 @@ Bootstrap_Iteration_Number=10
 Minumum_Coverage_Length=$SIZE
 Minimum_Average_Coverage_Depth=3
 " > $TMPNAME/sigma_$RFILE""_config.cfg
-
 
 	fi
 
