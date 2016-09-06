@@ -663,7 +663,7 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -w . &
+	{ time -p ${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf1_$RFILE &
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
@@ -786,7 +786,7 @@ function sigmaFunction2 {
 	coresControlFunction $CORES
 
 	echo "executing sigma wrapper module"	
-	${SIGMAHOME}/./sigma -c $SIGMACFILE -t $THREADS -w . &
+	{ time -p ${SIGMAHOME}/./sigma -c $SIGMACFILE -t $THREADS -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -913,6 +913,9 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
+		cat $TMPNAME/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeSG_$RFILE
+		rm -rf $TMPNAME/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
+		
 		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
 		newsigname=`echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}'`
