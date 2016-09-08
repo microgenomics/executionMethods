@@ -663,7 +663,7 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	{ time -p ${SIGMAHOME}/./sigma-align-reads -c $SIGMACFILE -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf1_$RFILE &
+	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf1_$RFILE &
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
@@ -689,7 +689,7 @@ function krakenFunction {
 				P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 								
 				coresControlFunction 1
-				${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken &
+				{ time -p ${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$P1.$P2 &
 				lastpid=$!
 				pids[${pindex}]=$lastpid
 				pindex=$((pindex+1))
@@ -707,7 +707,7 @@ function krakenFunction {
 	else
 		coresControlFunction 1
 		SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
-		${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken &
+		{ time -p ${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$SINGLE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -786,7 +786,7 @@ function sigmaFunction2 {
 	coresControlFunction $CORES
 
 	echo "executing sigma wrapper module"	
-	{ time -p ${SIGMAHOME}/./sigma -c $SIGMACFILE -t $THREADS -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
+	{ time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -802,11 +802,7 @@ function sigmaFunction2 {
 function constrainsFunction {
 
 	echo "wake up constrains"
-	#if [ -f $COORDFOLDER/corescontrol ];then
-	#	i=`tail -n 1 $COORDFOLDER/corescontrol |awk '{print $1}'`
-	#else
-	#	i=0
-	#fi
+
 	readstoFastqFunction
 
 	cd $TMPNAME
@@ -853,7 +849,7 @@ function krakenFunction2 {
 
 	if [ "$READS" == "paired" ]; then
 		coresControlFunction 1
-		${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken &
+		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$P1.$P2 &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -862,7 +858,7 @@ function krakenFunction2 {
 
 	else
 		coresControlFunction 1
-		${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken &
+		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken  ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$SINGLE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -915,7 +911,7 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 		cat $TMPNAME/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeSG_$RFILE
 		rm -rf $TMPNAME/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
-		
+
 		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
 		newsigname=`echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}'`
@@ -932,13 +928,15 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
 		if [ "$READS" == "paired" ]; then
-			#rm -rf $TMPNAME/kraken_$P1.$P2.kraken
+			cat $TMPNAME/TimeKRf1_$P1.$P2 cat $TMPNAME/TimeKRf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$P1.$P2
+			rm -f $TMPNAME/TimeKRf1_$P1.$P2 cat $TMPNAME/TimeKRf2_$P1.$P2
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
 			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > $P1.$P2.kraken.tmp
-			rm kraken_trans_$P1.$P2.kraken
+			rm -f kraken_trans_$P1.$P2.kraken
 			mv $P1.$P2.kraken.tmp kraken_$P1.$P2.kraken
 		else
-			rm -rf $TMPNAME/kraken_$SINGLE.kraken
+			cat $TMPNAME/TimeKRf1_$SINGLE cat $TMPNAME/TimeKRf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$SINGLE
+			rm -f $TMPNAME/kraken_$SINGLE.kraken $TMPNAME/TimeKRf1_$SINGLE cat $TMPNAME/TimeKRf2_$SINGLE
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
 			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > $SINGLE.kraken.tmp
 			rm kraken_trans_$SINGLE.kraken
