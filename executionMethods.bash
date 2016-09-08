@@ -579,7 +579,7 @@ function metamixFunction {
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1
-					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$PAIREND1 &
+					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -588,7 +588,7 @@ function metamixFunction {
 
 
 					coresControlFunction 1
-					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$PAIREND2 &
+					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -746,8 +746,8 @@ function metamixFunction2 {
 	coresControlFunction 12 #parallel tempering requires 12 cores
 
 		if [ "$READS" == "paired" ]; then
-			cat TimeMXf1_$PAIREND1 TimeMXf1_$PAIREND2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMXf1_$P1.$P2
-			rm -f TimeMXf1_$PAIREND1 TimeMXf1_$PAIREND2
+			cat TimeMXf1_$P1 TimeMXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMXf1_$P1.$P2
+			rm -f TimeMXf1_$P1 TimeMXf1_$P2
 			cd metamix_$P1.$P2
 			BACKUPNAME=`echo "metamix_$P1.$P2"`
 			metamixCodeFunction
