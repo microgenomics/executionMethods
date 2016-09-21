@@ -19,6 +19,7 @@ sigmacfileband=0
 csfileband=0
 dbsgband=0
 dbkrband=0
+dbtaxatorband=0
 priorband=0
 PSFDB=""
 TOCLEAN=""
@@ -72,6 +73,10 @@ do
 	;;
 	"--dbKR")
 		dbkrband=1
+		invalidband=0
+	;;
+	"--dbTX")
+		dbtaxatorband=0
 		invalidband=0
 	;;
 	"--csfile")
@@ -170,6 +175,12 @@ do
 					;;
 					"KRAKENHOME")
 						KRAKENHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+					;;
+					"TAXATORHOME")
+						TAXATORHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+					;;
+					"TAXATORTK_TAXONOMY_NCBI")
+						TAXATORTK_TAXONOMY_NCBI=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
 					;;
 					"COORDFOLDER")
 						COORDFOLDER=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
@@ -340,6 +351,23 @@ do
 				dbpath=`pwd`
 				CSFILE=`echo "$dbpath/$CSFILE"`
 				csfileband=1
+				cd $INITIALPATH
+
+			else
+				echo "$i file no exist"
+				exit
+			fi
+		fi
+
+		if [ $((dbtaxatorband)) -eq 1 ]; then
+			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
+			if [ $((ok)) -ge 1 ]; then
+				DBTX=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				TXIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $TXIXDIR
+				dbpath=`pwd`
+				DBTX=`echo "$dbpath/$DBTX"`
+				dbtaxatorband=0
 				cd $INITIALPATH
 
 			else
@@ -588,7 +616,7 @@ function metamixFunction {
 
 
 					coresControlFunction 1
-					{ time -p ${BLASTHOME}/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
+					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -622,7 +650,7 @@ function metamixFunction {
 
 			coresControlFunction $CORES
 
-			{ time -p ${BLASTHOME}/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $CORES > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
+			{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -663,7 +691,7 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf1_$RFILE &
+	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
@@ -716,6 +744,86 @@ function krakenFunction {
 	fi
 
 	cd ..
+}
+
+function taxatorFunction {
+
+		echo "wake up taxator-tk"
+		if [ "$READS" == "paired" ]; then
+			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
+			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			#next, check the files (tolerance to missing files)
+			if [ -f "$PAIREND1" ];then
+				if [ -f "$PAIREND2" ];then
+					
+					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
+					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					
+					if mkdir $TMPNAME/taxator_$P1.$P2; then #we make new folder because is easier to clean after execution
+						echo "folder taxator_$P1.$P2 created"
+					else
+						echo "Taxator: cleaning previous run"
+						rm -r $TMPNAME/taxator_$P1.$P2
+						mkdir $TMPNAME/taxator_$P1.$P2
+					fi
+
+					cd $TMPNAME
+					cd taxator_$P1.$P2
+					
+					coresControlFunction 1
+					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P1 &
+					lastpid=$!
+					pids[${pindex}]=$lastpid
+					pindex=$((pindex+1))
+					echo "$lastpid 1 taxatorF1_1" >> $COORDFOLDER/proccesscontrol
+					coresunlockFunction
+
+
+					coresControlFunction 1
+					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P2 &
+					lastpid=$!
+					pids[${pindex}]=$lastpid
+					pindex=$((pindex+1))
+					echo "$lastpid 1 taxatorF1_2" >> $COORDFOLDER/proccesscontrol
+					coresunlockFunction
+
+			        cd ..
+					cd ..
+									
+				else
+					echo "$PAIREND2 no exist"
+					exit
+				fi
+			else
+				echo "$PAIREND1 no exist"
+				exit
+			fi
+		else
+			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+
+			if mkdir $TMPNAME/taxator_$SINGLE; then #we make new folder because is easier to clean after execution
+				echo "folder taxator_$SINGLE created"
+			else
+				echo "Taxator: cleaning previous run"
+				rm -r $TMPNAME/taxator_$SINGLE
+				mkdir $TMPNAME/taxator_$SINGLE
+			fi
+
+			cd $TMPNAME
+			cd taxator_$SINGLE
+
+			coresControlFunction $CORES
+
+			{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
+			lastpid=$!
+			pids[${pindex}]=$lastpid
+			pindex=$((pindex+1))
+			echo "$lastpid $CORES taxatorF1" >> $COORDFOLDER/proccesscontrol
+			coresunlockFunction
+			cd ..
+			cd ..
+		fi
+
 }
 
 function pathoscopeFunction2 {
@@ -786,7 +894,8 @@ function sigmaFunction2 {
 	coresControlFunction $CORES
 
 	echo "executing sigma wrapper module"	
-	{ time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
+    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
+	#${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -827,7 +936,7 @@ function constrainsFunction {
 			metaphlan: ../$newcsname" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
-			python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bowtie2-build --samtools=${SAMTOOLSHOME}/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+			{ time -p python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -871,6 +980,45 @@ function krakenFunction2 {
 
 }
 
+function taxatorFunction2 {
+
+	cd $TMPNAME
+
+	coresControlFunction $THREADS
+
+	if [ "$READS" == "paired" ]; then
+		cat TimeTXf1_$P1 TimeTXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTXf1_$P1.$P2
+		rm -f TimeTXf1_$P1 TimeTXf1_$P2
+		cd taxator_$P1.$P2
+		BACKUPNAME=`echo "taxator_$P1.$P2"`
+		cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
+		rm blastOut$P1.tab blastOut$P2.tab
+
+		awk '{print $0"\t"}' blastOut$P1.$P2.tab >  blastOut$P1.$P2.tab.tmp && rm -f blastOut$P1.$P2.tab && mv blastOut$P1.$P2.tab.tmp blastOut$P1.$P2.tab
+		../$PAIREND1
+
+
+		${TAXATORHOME}/bin/taxator -g db_B.tax -q 1.fa -v 1.fa.fai -f db_B.fna -i db_B.fna.fai -p16 < blastOut$P1.$P2.tab > my.predictions.gff3
+		${TAXATORHOME}/bin/binner -n "testID" < my.predictions.gff3 > my.tax
+
+		cd ..
+	else
+		cd metamix_$SINGLE
+		metamixCodeFunction
+		echo "execute metamix R function"
+		executionpath=`pwd`
+		{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
+		cd ..
+	fi
+	lastpid=$!
+	pids[${pindex}]=$lastpid
+	pindex=$((pindex+1))
+	echo "$lastpid 1 metamixF2" >> $COORDFOLDER/proccesscontrol
+	coresunlockFunction
+	cd ..
+
+}
+
 function lastStepFunction {
 
 	rm -f $TMPNAME/fasta_to_fastq.pl
@@ -883,16 +1031,21 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 		cat $TMPNAME/TimePSf1_$RFILE $TMPNAME/TimePSf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimePS_$RFILE
+		newpatname=`echo "TimePS_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv TimePS_$RFILE $newpatname
+
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
 		newpatname=`echo "pathoscope_$RFILE.sam-sam-report.tsv" |awk -F "," '{print $1"."$2}'`
 		mv pathoscope_$RFILE.sam-sam-report.tsv $newpatname
-		
 
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		mv $TMPNAME/TimeM2_$RFILE .
+		newmetname=`echo "TimeM2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv TimeM2_$RFILE $newmetname
+
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 		newmetname=`echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}'`
 		mv metaphlan_$RFILE.dat $newmetname
@@ -901,16 +1054,18 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 		if [ "$READS" == "paired" ]; then
 			cat $TMPNAME/TimeMXf1_$P1.$P2 $TMPNAME/TimeMXf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMX_$P1.$P2
-			rm -rf $TMPNAME/metamix_$P1.$P2.kraken
+			rm -rf $TMPNAME/metamix_$P1.$P2
 		else
 			cat $TMPNAME/TimeMXf1_$SINGLE $TMPNAME/TimeMXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMX_$SINGLE
-			rm -rf $TMPNAME/metamix_$SINGLE.kraken
+			rm -rf $TMPNAME/metamix_$SINGLE
 		fi
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		cat $TMPNAME/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeSG_$RFILE
-		rm -rf $TMPNAME/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
+		cat $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeSG_$RFILE
+		newsigname=`echo "TimeSG_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv TimeSG_$RFILE $newsigname
+		rm -f $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
 
 		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
@@ -919,11 +1074,12 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "CONSTRAINS" ]] && [ "$CSERROR" -eq 0 ]; then
+		newsigname=`echo "TimeCS_$RFILE" |awk -F "," '{print $1"."$2}'`		
+		mv $TMPNAME/TimeCS_$RFILE $newsigname
 		mv $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
-		#newconname=`echo "$CSTOCLEAN.profiles" |awk -F "," '{print $1"."$2}'`
-		#mv $CSTOCLEAN.profiles $newconname
+
 	fi
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
@@ -944,6 +1100,15 @@ function lastStepFunction {
 		fi
 	fi
 
+	if [[ "$METHOD" =~ "TAXATOR" ]]; then
+		if [ "$READS" == "paired" ]; then
+			cat $TMPNAME/TimeTXf1_$P1.$P2 $TMPNAME/TimeTXf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$P1.$P2
+			rm -rf $TMPNAME/taxator_$P1.$P2
+		else
+			cat $TMPNAME/TimeTXf1_$SINGLE $TMPNAME/TimeTXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$SINGLE
+			rm -rf $TMPNAME/taxator_$SINGLE
+		fi
+	fi	
 	echo "Done :D"
 }
 
@@ -1018,12 +1183,12 @@ function criticalvariablesFunction {
 			fi
 			
 			if [ "$SAMTOOLSHOME" == "" ];then
-				errormessage=`echo -e "$errormessage you must provide a samtools home/bin (SAMTOOLSHOME flag), to generate sigma config file\n"`
+				errormessage=`echo -e "$errormessage you must provide a samtools binary folder (home/bin) (SAMTOOLSHOME flag), to generate sigma config file\n"`
 				pass=$((pass+1))
 			fi
 
 			if [ "$DBSG" == "" ]; then
-				errormessage=`echo -e "$errormessage you must provide a samtools home/bin (SAMTOOLSHOME flag), to generate sigma config file\n"`
+				errormessage=`echo -e "$errormessage you must provide a sigma database path, to generate sigma config file\n"`
 				pass=$((pass+1))
 			fi
 
@@ -1077,6 +1242,17 @@ function criticalvariablesFunction {
 		fi
 	fi
 
+	if [[ "$METHOD" =~ "TAXATOR" ]]; then
+		if [ "TAXATORTK_TAXONOMY_NCBI" == "" ];then
+			errormessage=`echo -e "$errormessage you must provide a TAXATORTK_TAXONOMY_NCBI path for taxator-tk in the config file (TAXATORTK_TAXONOMY_NCBI=/path/to/your/ncbi taxonomi)\n"`
+			pass=$((pass+1))
+		fi
+		if [ "$DBTX" == "" ];then
+			errormessage=`echo -e "$errormessage You must provide a database (blast index), for taxator (--dbTX)\n"`
+			pass=$((pass+1))
+		fi
+	fi
+
 	if [ $((pass)) -eq 0 ];then
 		echo "all parameters ok"
 	else
@@ -1103,8 +1279,8 @@ function sigmaCfileFunction {
 		#RFILE=`echo "$F1,$F2"`
 		
 		echo "[Program_Info]
-Bowtie_Directory=$BOWTIE2HOME
-Samtools_Directory=$SAMTOOLSHOME
+Bowtie_Directory=$BOWTIE2HOME/bin
+Samtools_Directory=$SAMTOOLSHOME/bin
 [Data_Info]
 Reference_Genome_Directory=$DBSG
 Paired_End_Reads_1=$FASTQFOLDER/$F1
