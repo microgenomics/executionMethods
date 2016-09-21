@@ -1152,6 +1152,11 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage no PATHOSCOPEHOME\n"`
 			pass=$((pass+1))
 		fi
+
+		if ! [ -f $PATHOSCOPEHOME/pathoscope2.py ];then
+			errormessage=`echo -e "$errormessage pathoscope2.py no exist in $PATHOSCOPEHOME\n"`
+			pass=$((pass+1))
+		fi
 	fi
 
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
