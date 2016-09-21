@@ -1135,6 +1135,10 @@ function criticalvariablesFunction {
 		if [ "$METAPHLAN2HOME" == "" ];then
 			errormessage=`echo -e "$errormessage no METAPHLAN2HOME\n"`
 			pass=$((pass+1))
+	
+		if ! [ -f $METAPHLAN2HOME/metaphlan2.py ]; then
+			errormessage=`echo -e "$errormessage metaphlan2.py no exist in $METAPHLAN2HOME\n"`
+			pass=$((pass+1))
 		fi
 	fi
 
