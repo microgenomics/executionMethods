@@ -1170,6 +1170,12 @@ function criticalvariablesFunction {
 			pass=$((pass+1))
 		fi
 
+		if ! [  -f $SIGMAHOME/bin/sigma ];then
+			errormessage=`echo -e "$errormessage sigma no exist in $SIGMAHOME/bin\n"`
+			pass=$((pass+1))
+		fi
+
+		
 		if [ "$SIGMACFILE" == "" ];then
 
 			if [ "$BOWTIE2HOME" == "" ];then
