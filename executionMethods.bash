@@ -1069,15 +1069,15 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cat $TMPNAME/TimeKRf1_$P1.$P2 cat $TMPNAME/TimeKRf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$P1.$P2
-			rm -f $TMPNAME/TimeKRf1_$P1.$P2 cat $TMPNAME/TimeKRf2_$P1.$P2
+			cat $TMPNAME/TimeKRf1_$P1.$P2 $TMPNAME/TimeKRf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$P1.$P2
+			rm -f $TMPNAME/TimeKRf1_$P1.$P2 $TMPNAME/TimeKRf2_$P1.$P2
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
 			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > $P1.$P2.kraken.tmp
 			rm -f kraken_trans_$P1.$P2.kraken
 			mv $P1.$P2.kraken.tmp kraken_$P1.$P2.kraken
 		else
-			cat $TMPNAME/TimeKRf1_$SINGLE cat $TMPNAME/TimeKRf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$SINGLE
-			rm -f $TMPNAME/kraken_$SINGLE.kraken $TMPNAME/TimeKRf1_$SINGLE cat $TMPNAME/TimeKRf2_$SINGLE
+			cat $TMPNAME/TimeKRf1_$SINGLE $TMPNAME/TimeKRf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$SINGLE
+			rm -f $TMPNAME/kraken_$SINGLE.kraken $TMPNAME/TimeKRf1_$SINGLE $TMPNAME/TimeKRf2_$SINGLE
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
 			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > $SINGLE.kraken.tmp
 			rm kraken_trans_$SINGLE.kraken
@@ -1093,7 +1093,7 @@ function lastStepFunction {
 			cat $TMPNAME/TimeTXf1_$SINGLE $TMPNAME/TimeTXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$SINGLE
 			rm -rf $TMPNAME/taxator_$SINGLE
 		fi
-	fi	
+	fi
 	echo "Done :D"
 }
 
@@ -1241,8 +1241,7 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage no KRAKENHOME\n"`
 			pass=$((pass+1))
 		fi
-		status=`command -v $KRAKENHOME/kraken >/dev/null 2>&1 || { echo "NOT_INSTALLED" >&2; }`
-		if [  "$status" == "NOT_INSTALLED" ];then
+		if ! [ -f $KRAKENHOME/kraken ];then
 			errormessage=`echo -e "$errormessage kraken no exist in $KRAKENHOME\n"`
 			pass=$((pass+1))
 		fi
@@ -1257,6 +1256,7 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage You must provide a database (blast index), for taxator (--dbTX)\n"`
 			pass=$((pass+1))
 		fi
+
 	fi
 
 	if [ $((pass)) -eq 0 ];then
