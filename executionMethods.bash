@@ -125,26 +125,8 @@ do
 			do
 				Pname=`echo "$parameter" |awk 'BEGIN{FS="="}{print $1}'`		
 				case $Pname in
-					"GENOMESIZEBALANCE")
-						GENOMESIZEBALANCE=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
-					;;
-					"COMMUNITYCOMPLEX")
-						COMMUNITYCOMPLEX=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
-					"SPECIES")
-						SPECIES=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
-					"ABUNDANCE")
-						ABUNDANCE=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
-					"DOMINANCE")
-					DOMINANCE=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
-					"READSIZE")
-						READSIZE=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
-					;;
 					"METHOD")
-						METHOD=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						METHOD=$(echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g")			
 					;;
 					"CORES")
 						CORES=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
@@ -194,13 +176,7 @@ do
 			cfileband=0
 		fi
 		
-		if [ $((tifamilyband)) -eq 1 ]; then
-			TIFAMILYFILE=$i
-			tifamilyband=0
-		fi
-		
 		if [ $((rfileband)) -eq 1 ]; then
-
 			#first, we check if exist the pair end call.
 			IRFILE=$i
 			rfileband=0
@@ -1137,21 +1113,6 @@ function criticalvariablesFunction {
 		pass=$((pass+1))
 	fi
 
-	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
-			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line (--dbM2 and --dbmarker)\n"`
-			pass=$((pass+1))
-		fi
-		if [ "$METAPHLAN2HOME" == "" ];then
-			errormessage=`echo -e "$errormessage no METAPHLAN2HOME\n"`
-			pass=$((pass+1))
-	
-		if ! [ -f $METAPHLAN2HOME/metaphlan2.py ]; then
-			errormessage=`echo -e "$errormessage metaphlan2.py no exist in $METAPHLAN2HOME\n"`
-			pass=$((pass+1))
-		fi
-	fi
-
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 
 		if [ "$DBPS" == "" ];then
@@ -1164,6 +1125,22 @@ function criticalvariablesFunction {
 		fi
 		if ! [ -f $PATHOSCOPEHOME/pathoscope2.py ];then
 			errormessage=`echo -e "$errormessage pathoscope2.py no exist in $PATHOSCOPEHOME\n"`
+			pass=$((pass+1))
+		fi
+	fi
+
+	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
+		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
+			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line (--dbM2 and --dbmarker)\n"`
+			pass=$((pass+1))
+		fi
+		if [ "$METAPHLAN2HOME" == "" ];then
+			errormessage=`echo -e "$errormessage no METAPHLAN2HOME\n"`
+			pass=$((pass+1))
+		fi	
+	
+		if ! [ -f $METAPHLAN2HOME/metaphlan2.py ]; then
+			errormessage=`echo -e "$errormessage metaphlan2.py no exist in $METAPHLAN2HOME\n"`
 			pass=$((pass+1))
 		fi
 	fi
@@ -1258,7 +1235,8 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage no KRAKENHOME\n"`
 			pass=$((pass+1))
 		fi
-		if ! [ -f $KRAKENHOME/kraken ];then
+		status=`command -v $KRAKENHOME/kraken >/dev/null 2>&1 || { echo "NOT_INSTALLED" >&2; }`
+		if [  "$status" == "NOT_INSTALLED" ];then
 			errormessage=`echo -e "$errormessage kraken no exist in $KRAKENHOME\n"`
 			pass=$((pass+1))
 		fi
