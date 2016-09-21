@@ -412,54 +412,60 @@ pindex=0
 maxexe=$CORES
 #################################################
 lastpid=0
+
 function coresControlFunction {
+
 	request=$1
-if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
-	if [ -f $COORDFOLDER/corescontrol ]; then
-		i=`tail -n1 $COORDFOLDER/corescontrol`
+	if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
+		if [ -f $COORDFOLDER/corescontrol ]; then
+			i=`tail -n1 $COORDFOLDER/corescontrol`
+		else
+			touch $COORDFOLDER/corescontrol
+			i=0
+		fi
+
+		if [ -f $COORDFOLDER/proccesscontrol ];then
+			firstproc=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $1}'`
+			firstcore=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $2}'`
+		else
+			firstproc="foo_proccess_foo"
+			touch $COORDFOLDER/proccesscontrol
+		fi
+
+		if [ $((i)) -ge $((maxexe)) ]; then
+
+			while [[ ( -d /proc/$firstproc ) && ( -z "grep zombie /proc/$firstproc/status" ) ]]; do
+				#echo "waiting for proccess $firstproc"
+ 		          sleep 61
+ 		      done
+ 		      
+ 		      sed "1d" $COORDFOLDER/proccesscontrol >toreplace
+ 		      rm $COORDFOLDER/proccesscontrol
+ 		      mv toreplace $COORDFOLDER/proccesscontrol
+
+ 		      sed "1d" $COORDFOLDER/corescontrol >toreplace
+ 		      rm $COORDFOLDER/corescontrol
+ 		      mv toreplace $COORDFOLDER/corescontrol
+
+			i=`echo "$i $firstcore" |awk '{print $1-$2}'`
+			echo "$i" >>$COORDFOLDER/corescontrol
+
+		else
+			echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$COORDFOLDER/corescontrol
+		fi
+
 	else
-		touch $COORDFOLDER/corescontrol
-		i=0
+		sleep 60
+		coresControlFunction $request
 	fi
 
-	if [ -f $COORDFOLDER/proccesscontrol ];then
-		firstproc=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $1}'`
-		firstcore=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $2}'`
-	else
-		firstproc="foo_proccess_foo"
-		touch $COORDFOLDER/proccesscontrol
-	fi
-
-	if [ $((i)) -ge $((maxexe)) ]; then
-
-		while [[ ( -d /proc/$firstproc ) && ( -z "grep zombie /proc/$firstproc/status" ) ]]; do
-			#echo "waiting for proccess $firstproc"
-            sleep 61
-        done
-        
-        sed "1d" $COORDFOLDER/proccesscontrol >toreplace
-        rm $COORDFOLDER/proccesscontrol
-        mv toreplace $COORDFOLDER/proccesscontrol
-
-        sed "1d" $COORDFOLDER/corescontrol >toreplace
-        rm $COORDFOLDER/corescontrol
-        mv toreplace $COORDFOLDER/corescontrol
-
-		i=`echo "$i $firstcore" |awk '{print $1-$2}'`
-		echo "$i" >>$COORDFOLDER/corescontrol
-
-	else
-		echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$COORDFOLDER/corescontrol
-	fi
-
-else
-	sleep 60
-	coresControlFunction $request
-fi
 }
+
 function coresunlockFunction {
+
 	rm -rf $COORDFOLDER/lockfolder_donttouch
 }
+
 function fastalockFunction {
 	if mkdir fastalock; then
 		echo "fastalock created"
@@ -468,12 +474,14 @@ function fastalockFunction {
 		fastalockFunction
 	fi
 }
-function fastaunlockFunction {
-	rm -rf fastalock
 
+function fastaunlockFunction {
+
+	rm -rf fastalock
 }
+
 function readstoFastqFunction {
-			if [ "$READS" == "paired" ]; then
+		if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
 			#next, check the files (tolerance to missing files)
@@ -523,6 +531,7 @@ function readstoFastqFunction {
 			fastaunlockFunction
 		fi
 }
+
 function pathoscopeFunction {
 
 		echo "wake up pathoscope"
@@ -1113,6 +1122,7 @@ function lastStepFunction {
 }
 
 function criticalvariablesFunction {
+
 	pass=0
 	errormessage=""
 
@@ -1292,25 +1302,25 @@ function sigmaCfileFunction {
 		#RFILE=`echo "$F1,$F2"`
 		
 		echo "[Program_Info]
-Bowtie_Directory=$BOWTIE2HOME/bin
-Samtools_Directory=$SAMTOOLSHOME/bin
-[Data_Info]
-Reference_Genome_Directory=$DBSG
-Paired_End_Reads_1=$FASTQFOLDER/$F1
-Paired_End_Reads_2=$FASTQFOLDER/$F2
-[Bowtie_Search]
-Maximum_Mismatch_Count=3
-Minimum_Fragment_Length=0
-Maximum_Fragment_Length=2000
-Bowtie_Threads_Number=$THREADS
-[Model_Probability]
-Mismatch_Probability=0.05
-Minimum_Relative_Abundance = 0.01
-[Statistics]
-Bootstrap_Iteration_Number=10
-Minumum_Coverage_Length=$SIZE
-Minimum_Average_Coverage_Depth=3
-" > $TMPNAME/sigma_$RFILE""_config.cfg
+		Bowtie_Directory=$BOWTIE2HOME/bin
+		Samtools_Directory=$SAMTOOLSHOME/bin
+		[Data_Info]
+		Reference_Genome_Directory=$DBSG
+		Paired_End_Reads_1=$FASTQFOLDER/$F1
+		Paired_End_Reads_2=$FASTQFOLDER/$F2
+		[Bowtie_Search]
+		Maximum_Mismatch_Count=3
+		Minimum_Fragment_Length=0
+		Maximum_Fragment_Length=2000
+		Bowtie_Threads_Number=$THREADS
+		[Model_Probability]
+		Mismatch_Probability=0.05
+		Minimum_Relative_Abundance = 0.01
+		[Statistics]
+		Bootstrap_Iteration_Number=10
+		Minumum_Coverage_Length=$SIZE
+		Minimum_Average_Coverage_Depth=3
+		" > $TMPNAME/sigma_$RFILE""_config.cfg
 		
 	else
 		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
@@ -1322,24 +1332,24 @@ Minimum_Average_Coverage_Depth=3
 		cd ..
 
 		echo "[Program_Info]
-Bowtie_Directory=$BOWTIE2HOME
-Samtools_Directory=$SAMTOOLSHOME
-[Data_Info]
-Reference_Genome_Directory=$DBSG
-Single_End_Reads=$FASTQFOLDER/$RFILE
-[Bowtie_Search]
-Maximum_Mismatch_Count=3
-Minimum_Fragment_Length=0
-Maximum_Fragment_Length=2000
-Bowtie_Threads_Number=$THREADS
-[Model_Probability]
-Mismatch_Probability=0.05
-Minimum_Relative_Abundance = 0.01
-[Statistics]
-Bootstrap_Iteration_Number=10
-Minumum_Coverage_Length=$SIZE
-Minimum_Average_Coverage_Depth=3
-" > $TMPNAME/sigma_$RFILE""_config.cfg
+		Bowtie_Directory=$BOWTIE2HOME
+		Samtools_Directory=$SAMTOOLSHOME
+		[Data_Info]
+		Reference_Genome_Directory=$DBSG
+		Single_End_Reads=$FASTQFOLDER/$RFILE
+		[Bowtie_Search]
+		Maximum_Mismatch_Count=3
+		Minimum_Fragment_Length=0
+		Maximum_Fragment_Length=2000
+		Bowtie_Threads_Number=$THREADS
+		[Model_Probability]
+		Mismatch_Probability=0.05
+		Minimum_Relative_Abundance = 0.01
+		[Statistics]
+		Bootstrap_Iteration_Number=10
+		Minumum_Coverage_Length=$SIZE
+		Minimum_Average_Coverage_Depth=3
+		" > $TMPNAME/sigma_$RFILE""_config.cfg
 
 	fi
 
