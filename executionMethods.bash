@@ -1152,7 +1152,6 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage no PATHOSCOPEHOME\n"`
 			pass=$((pass+1))
 		fi
-
 		if ! [ -f $PATHOSCOPEHOME/pathoscope2.py ];then
 			errormessage=`echo -e "$errormessage pathoscope2.py no exist in $PATHOSCOPEHOME\n"`
 			pass=$((pass+1))
@@ -1249,6 +1248,10 @@ function criticalvariablesFunction {
 			errormessage=`echo -e "$errormessage no KRAKENHOME\n"`
 			pass=$((pass+1))
 		fi
+		if ! [ -f $KRAKENHOME/kraken ];then
+			errormessage=`echo -e "$errormessage kraken no exist in $KRAKENHOME\n"`
+			pass=$((pass+1))
+		fi
 	fi
 
 	if [[ "$METHOD" =~ "TAXATOR" ]]; then
@@ -1268,6 +1271,7 @@ function criticalvariablesFunction {
 		echo "$errormessage"
 		exit
 	fi
+
 }
 
 function sigmaCfileFunction {
