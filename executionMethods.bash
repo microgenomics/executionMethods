@@ -393,8 +393,8 @@ do
 		if [ $((dbrawtaxatorband)) -eq 1 ]; then
 			if [ -f "$i" ]; then
 				DBTXR=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				TXIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
-				cd $TXIXDIR
+				TXRIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $TXRIXDIR
 				dbpath=`pwd`
 				DBTXR=`echo "$dbpath/$DBTX"`
 				dbrawtaxatorband=0
