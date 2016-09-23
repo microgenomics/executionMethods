@@ -20,6 +20,8 @@ csfileband=0
 dbsgband=0
 dbkrband=0
 dbtaxatorband=0
+dbrawtaxatorband=0
+taxatortaxband=0
 priorband=0
 PSFDB=""
 TOCLEAN=""
@@ -76,7 +78,15 @@ do
 		invalidband=0
 	;;
 	"--dbTX")
-		dbtaxatorband=0
+		dbtaxatorband=1
+		invalidband=0
+	;;
+	"--dbTXraw")
+		dbrawtaxatorband=1
+		invalidband=0
+	;;
+	"--TXtax")
+		taxatortaxband=1
 		invalidband=0
 	;;
 	"--csfile")
@@ -90,8 +100,8 @@ do
 	"--help")
 	invalidband=0
 		echo "#########################################################################################"
-		echo -e "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[DB options] [databases]"
-		echo -e "\nOptions aviable:"
+		printf "\nUsage: bash executionMethods --cfile [config file] --rfile [readsfile] -[DB options] [databases]"
+		printf "\nOptions aviable:"
 		echo "--cfile configuration file check README for more information"
 		echo "--rfile reads file, if you have paired end reads, use: --rfile readfile1.fa,readfile2.fa"
 		
@@ -100,7 +110,7 @@ do
 		echo "--sigmacfile is the configuration file used by sigma, if in your cfile, SIGMA is in the METHODS flag, you must provide the sigmacfile"
 		echo "--tprior thetaPrior option of pathoscope"
 		
-		echo -e "\nDB options:"
+		printf "\nDB options:"
 		echo "--dbPS pathoscope database folder and prefix: e.g /home/user/dbpathoscope_bt2/targetdb (bowtie2 index)"
 		echo "--dbM2 metaphlan database folder and prefix: e.g /home/user/dbmarkers_bt2/targetdb (bowtie2 index)"
 		echo "--dbMX metamix database folder and prefix: e.g /home/user/dbmetamix_nhi/targetdb (blast index)"
@@ -109,7 +119,7 @@ do
 		echo "--dbCS constrains database folder"
 		echo "--dbKR kraken database folder"
 		echo "note: you must provide sigma database folder in the sigma config file"
-		echo -e "\n#########################################################################################"
+		printf "\n#########################################################################################"
 		exit
 	;;
 	*)
@@ -335,6 +345,18 @@ do
 			fi
 		fi
 
+		if [ $((dbkrband)) -eq 1 ]; then
+			dbkrband=0
+			if [ -d $i ]; then
+				cd $i
+				DBKR=`pwd`
+				cd $INITIALPATH
+			else
+				echo "$i file no exist"
+				exit
+			fi
+		fi
+
 		if [ $((dbtaxatorband)) -eq 1 ]; then
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
@@ -351,6 +373,38 @@ do
 				exit
 			fi
 		fi
+		
+		if [ $((taxatortaxband)) -eq 1 ]; then
+			if [ -f "$i" ]; then
+				TXTAX=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				TXTAXIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $TXTAXIXDIR
+				dbpath=`pwd`
+				TXTAX=`echo "$dbpath/$TXTAX"`
+				taxatortaxband=0
+				cd $INITIALPATH
+
+			else
+				echo "$i taxator tax file no exist"
+				exit
+			fi
+		fi
+
+		if [ $((dbrawtaxatorband)) -eq 1 ]; then
+			if [ -f "$i" ]; then
+				DBTXR=`echo "$i" |rev |cut -d "/" -f 1 |rev`
+				TXIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				cd $TXIXDIR
+				dbpath=`pwd`
+				DBTXR=`echo "$dbpath/$DBTX"`
+				dbrawtaxatorband=0
+				cd $INITIALPATH
+
+			else
+				echo "$i taxator tax file no exist"
+				exit
+			fi
+		fi
 
 		if [ $((priorband)) -eq 1 ]; then
 				PRIOR=$i
@@ -363,19 +417,6 @@ do
 			exit
 		else
 			invalid=1
-		fi
-
-
-		if [ $((dbkrband)) -eq 1 ]; then
-			dbkrband=0
-			if [ -d $i ]; then
-				cd $i
-				DBKR=`pwd`
-				cd $INITIALPATH
-			else
-				echo "$i file no exist"
-				exit
-			fi
 		fi
 
 	;;
@@ -940,27 +981,20 @@ function constrainsFunction {
 function krakenFunction2 {
 
 	cd $TMPNAME
+	coresControlFunction 1
 
 	if [ "$READS" == "paired" ]; then
-		coresControlFunction 1
 		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$P1.$P2 &
-		lastpid=$!
-		pids[${pindex}]=$lastpid
-		pindex=$((pindex+1))
-		echo "$lastpid 1 krakenF2" >> $COORDFOLDER/proccesscontrol
-		coresunlockFunction
-
 	else
-		coresControlFunction 1
 		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken  ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$SINGLE &
-		lastpid=$!
-		pids[${pindex}]=$lastpid
-		pindex=$((pindex+1))
-		echo "$lastpid 1 krakenF2" >> $COORDFOLDER/proccesscontrol
-		coresunlockFunction
-
 	fi
-
+	
+	lastpid=$!
+	pids[${pindex}]=$lastpid
+	pindex=$((pindex+1))
+	echo "$lastpid 1 krakenF2" >> $COORDFOLDER/proccesscontrol
+	coresunlockFunction
+	
 	cd ..
 
 }
@@ -969,7 +1003,7 @@ function taxatorFunction2 {
 
 	cd $TMPNAME
 
-	coresControlFunction $THREADS
+	coresControlFunction $CORES
 
 	if [ "$READS" == "paired" ]; then
 		cat TimeTXf1_$P1 TimeTXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTXf1_$P1.$P2
@@ -980,25 +1014,24 @@ function taxatorFunction2 {
 		rm blastOut$P1.tab blastOut$P2.tab
 
 		awk '{print $0"\t"}' blastOut$P1.$P2.tab >  blastOut$P1.$P2.tab.tmp && rm -f blastOut$P1.$P2.tab && mv blastOut$P1.$P2.tab.tmp blastOut$P1.$P2.tab
-		../$PAIREND1
+		cat ../$PAIREND1 ../$PAIREND2 > $P1.$P2
 
 
-		${TAXATORHOME}/bin/taxator -g db_B.tax -q 1.fa -v 1.fa.fai -f db_B.fna -i db_B.fna.fai -p16 < blastOut$P1.$P2.tab > my.predictions.gff3
-		${TAXATORHOME}/bin/binner -n "testID" < my.predictions.gff3 > my.tax
+		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab > $P1.$P2.gff3
+		${TAXATORHOME}/bin/binner -n "$P1.$P2" < $P1.$P2.gff3 > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > TimeTXf2_$P1.$P2 &
 
 		cd ..
 	else
-		cd metamix_$SINGLE
-		metamixCodeFunction
-		echo "execute metamix R function"
-		executionpath=`pwd`
-		{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
+		cd taxator_$SINGLE
+
+
+
 		cd ..
 	fi
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid 1 metamixF2" >> $COORDFOLDER/proccesscontrol
+	echo "$lastpid $CORES taxatorF2" >> $COORDFOLDER/proccesscontrol
 	coresunlockFunction
 	cd ..
 
@@ -1088,7 +1121,8 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "TAXATOR" ]]; then
 		if [ "$READS" == "paired" ]; then
 			cat $TMPNAME/TimeTXf1_$P1.$P2 $TMPNAME/TimeTXf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$P1.$P2
-			rm -rf $TMPNAME/taxator_$P1.$P2
+			rm -rf $TMPNAME/taxator_$P1.$P2 $TMPNAME/$P1.$P2 $TMPNAME/$P1.$P2.gff3
+			mv $TMPNAME/taxator_$P1.$P2.tax .
 		else
 			cat $TMPNAME/TimeTXf1_$SINGLE $TMPNAME/TimeTXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$SINGLE
 			rm -rf $TMPNAME/taxator_$SINGLE
@@ -1100,47 +1134,46 @@ function lastStepFunction {
 function criticalvariablesFunction {
 
 	pass=0
-	errormessage=""
-
+	echo "Checking critical variables:"
 	if [ "$IRFILE" == "" ];then
-		errormessage=`echo -e "$errormessage You must provide a read file\n"`
+		echo "* You must provide a read file"
 		pass=$((pass+1))
 	fi
 
 	if [ "$CORES" == "" ] || [ "$THREADS" == "" ]
 	then
-		errormessage=`echo -e "$errormessage cores or threads are null, you must specify in the config file\n"`
+		echo "* Cores or threads are null, you must specify in the config file"
 		pass=$((pass+1))
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 
 		if [ "$DBPS" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database (bowtie2 index), for pathoscope (--dbPS)\n"`
+			echo "* You must provide a database (bowtie2 index), for pathoscope (--dbPS)"
 			pass=$((pass+1))
 		fi
 		if [ "$PATHOSCOPEHOME" == "" ];then
-			errormessage=`echo -e "$errormessage no PATHOSCOPEHOME\n"`
+			echo "* No PATHOSCOPEHOME is specified"
 			pass=$((pass+1))
 		fi
 		if ! [ -f $PATHOSCOPEHOME/pathoscope2.py ];then
-			errormessage=`echo -e "$errormessage pathoscope2.py no exist in $PATHOSCOPEHOME\n"`
+			echo "* pathoscope2.py no exist in $PATHOSCOPEHOME"
 			pass=$((pass+1))
 		fi
 	fi
 
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
 		if [ "$DBM2" == "" ] || [ "$DBMARKER" == "" ];then
-			errormessage=`echo -e "$errormessage METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line (--dbM2 and --dbmarker)\n"`
+			echo "* METAPHLAN is specify in the config file, but you must provide a database (bowtie2 index), and pkl file in the command line (--dbM2 and --dbmarker)"
 			pass=$((pass+1))
 		fi
 		if [ "$METAPHLAN2HOME" == "" ];then
-			errormessage=`echo -e "$errormessage no METAPHLAN2HOME\n"`
+			echo "* No METAPHLAN2HOME\n"
 			pass=$((pass+1))
 		fi	
 	
 		if ! [ -f $METAPHLAN2HOME/metaphlan2.py ]; then
-			errormessage=`echo -e "$errormessage metaphlan2.py no exist in $METAPHLAN2HOME\n"`
+			echo "* metaphlan2.py no exist in $METAPHLAN2HOME"
 			pass=$((pass+1))
 		fi
 	fi
@@ -1148,17 +1181,17 @@ function criticalvariablesFunction {
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 
 		if [ "$DBMX" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database (blast index), for metamix (--dbMX)\n"`
+			echo "* You must provide a database (blast index), for metamix (--dbMX)"
 			pass=$((pass+1))
 		fi
 
 		if [ "$MXNAMES" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide the names of your blast database (--MXnames), this file have ti - name format (183214 Foo)\n"`
+			echo "* You must provide the names of your blast database (--MXnames), this file have ti - name format (183214 Foo)"
 			pass=$((pass+1))
 		fi
 
 		if [ "$BLASTHOME" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide BLASTHOME in config file (e.g /usr/local/ncbi/blast/bin)\n"`
+			echo "* You must provide BLASTHOME in config file"
 			pass=$((pass+1))
 		fi
 	fi
@@ -1166,12 +1199,12 @@ function criticalvariablesFunction {
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 
 		if [ "$SIGMAHOME" == "" ];then
-			errormessage=`echo -e "$errormessage no SIGMAHOME\n"`
+			echo "* No SIGMAHOME is specified"
 			pass=$((pass+1))
 		fi
 
 		if ! [  -f $SIGMAHOME/bin/sigma ];then
-			errormessage=`echo -e "$errormessage sigma no exist in $SIGMAHOME/bin\n"`
+			echo "* sigma no exist in $SIGMAHOME/bin"
 			pass=$((pass+1))
 		fi
 
@@ -1179,17 +1212,17 @@ function criticalvariablesFunction {
 		if [ "$SIGMACFILE" == "" ];then
 
 			if [ "$BOWTIE2HOME" == "" ];then
-				errormessage=`echo -e "$errormessage you must provide a bowtie2 home in config file (BOWTIE2HOME flag), to generate sigma config file\n"`
+				echo "* You must provide a bowtie2 home in config file (BOWTIE2HOME flag), to generate sigma config file"
 				pass=$((pass+1))
 			fi
 			
 			if [ "$SAMTOOLSHOME" == "" ];then
-				errormessage=`echo -e "$errormessage you must provide a samtools binary folder (home/bin) (SAMTOOLSHOME flag), to generate sigma config file\n"`
+				echo "* You must provide a samtools binary folder (home/bin) (SAMTOOLSHOME flag), to generate sigma config file"
 				pass=$((pass+1))
 			fi
 
 			if [ "$DBSG" == "" ]; then
-				errormessage=`echo -e "$errormessage you must provide a sigma database path, to generate sigma config file\n"`
+				echo "* You must provide a sigma database path, to generate sigma config file"
 				pass=$((pass+1))
 			fi
 
@@ -1216,12 +1249,12 @@ function criticalvariablesFunction {
 			SR=`grep -1 "Single_End_Reads" $SIGMACFILE |cut -d "=" -f 2 |rev |cut -d "/" -f 1 |rev`
 
 			if [ -d $DBSG ];then
-					errormessage=`echo -e "$errormessage you must provide a database folder in sigma config file\n"`
+					echo "* You must provide a database folder in sigma config file"
 					pass=$((pass+1))
 			fi
 			if [ "$SR" == "" ];then
 				if [ "$PR1" == "" ] || [ "$PR2" == "" ]; then
-					errormessage=`echo -e "$errormessage you must provide a read file in sigma config file\n"`
+					echo "* You must provide a read file in sigma config file"
 					pass=$((pass+1))
 				else
 					RTYPE="PAIRED"
@@ -1234,35 +1267,57 @@ function criticalvariablesFunction {
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
 		if [ "$DBKR" == "" ];then
-			errormessage=`echo -e "$errormessage you must provide a database (folder) for kraken (--dbKR)\n"`
+			echo "* You must provide a database (folder), for kraken (--dbKR)"
 			pass=$((pass+1))
 		fi
 		if [ "$KRAKENHOME" == "" ];then
-			errormessage=`echo -e "$errormessage no KRAKENHOME\n"`
+			echo "* You no KRAKENHOME is specified"
 			pass=$((pass+1))
 		fi
 		if ! [ -f $KRAKENHOME/kraken ];then
-			errormessage=`echo -e "$errormessage kraken no exist in $KRAKENHOME\n"`
+			echo "* You kraken no exist in $KRAKENHOME"
 			pass=$((pass+1))
 		fi
 	fi
 
 	if [[ "$METHOD" =~ "TAXATOR" ]]; then
 		if [ "TAXATORTK_TAXONOMY_NCBI" == "" ];then
-			errormessage=`echo -e "$errormessage you must provide a TAXATORTK_TAXONOMY_NCBI path for taxator-tk in the config file (TAXATORTK_TAXONOMY_NCBI=/path/to/your/ncbi taxonomi)\n"`
+			echo "* You must provide a TAXATORTK_TAXONOMY_NCBI path for taxator-tk in the config file (TAXATORTK_TAXONOMY_NCBI=/path/to/your/ncbi taxonomi)"
+			pass=$((pass+1))
+		else
+			export TAXATORTK_TAXONOMY_NCBI=$TAXATORTK_TAXONOMY_NCBI
+		fi
+
+		if [ "$DBTX" == "" ];then
+			echo "* You must provide a database (blast index), for taxator (--dbTX)"
 			pass=$((pass+1))
 		fi
-		if [ "$DBTX" == "" ];then
-			errormessage=`echo -e "$errormessage You must provide a database (blast index), for taxator (--dbTX)\n"`
+		
+		if [ "$DBTXR" == "" ];then
+			echo "* You must provide a raw database for taxator (--dbTXraw), the same fna/fasta that was used for construct the index in blast"
+			pass=$((pass+1))
+		fi
+
+		if [ "$TXTAX" == "" ];then
+			echo "* You must provide a tax .file for taxator (--TXtax)"
+			pass=$((pass+1))
+		fi
+
+		if [ "$TAXATORHOME" == "" ];then
+			echo "* You must provide a taxator home in the config file"
+			pass=$((pass+1))
+		fi
+
+		if ! [ -f $TAXATORHOME/bin/taxator ];then
+			echo "* Taxator no exist in $TAXATORHOME/bin"
 			pass=$((pass+1))
 		fi
 
 	fi
 
 	if [ $((pass)) -eq 0 ];then
-		echo "all parameters ok"
+		echo "* All parameters ok"
 	else
-		echo "$errormessage"
 		exit
 	fi
 
@@ -1456,6 +1511,9 @@ if [ $((statusband)) -ge 1 ]; then
 					"KRAKEN")
 						krakenFunction
 					;;
+					"TAXATOR")
+						taxatorFunction
+					;;
 				esac
 			done
 		
@@ -1491,6 +1549,9 @@ if [ $((statusband)) -ge 1 ]; then
 					;;
 					"KRAKEN")
 						krakenFunction2
+					;;
+					"TAXATOR")
+						taxatorFunction2
 					;;
 				esac
 			done
