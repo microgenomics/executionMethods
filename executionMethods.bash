@@ -1014,7 +1014,7 @@ function taxatorFunction2 {
 		rm blastOut$P1.tab blastOut$P2.tab
 
 		awk '{print $0"\t"}' blastOut$P1.$P2.tab >  blastOut$P1.$P2.tab.tmp && rm -f blastOut$P1.$P2.tab && mv blastOut$P1.$P2.tab.tmp blastOut$P1.$P2.tab
-		cat ../$PAIREND1 ../$PAIREND2 > $P1.$P2
+		cat ../../$PAIREND1 ../../$PAIREND2 > $P1.$P2
 
 
 		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab > $P1.$P2.gff3
