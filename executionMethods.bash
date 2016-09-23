@@ -396,7 +396,7 @@ do
 				TXRIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
 				cd $TXRIXDIR
 				dbpath=`pwd`
-				DBTXR=`echo "$dbpath/$DBTX"`
+				DBTXR=`echo "$dbpath/$DBTXR"`
 				dbrawtaxatorband=0
 				cd $INITIALPATH
 
