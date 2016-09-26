@@ -442,8 +442,8 @@ function coresControlFunction {
 		fi
 
 		if [ -f $COORDFOLDER/proccesscontrol ];then
-			firstproc=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $1}'`
-			firstcore=`head -n1 $COORDFOLDER/proccesscontrol |awk '{print $2}'`
+			firstproc=$(head -n1 $COORDFOLDER/proccesscontrol |awk '{print $1}')
+			firstcore=$(head -n1 $COORDFOLDER/proccesscontrol |awk '{print $2}')
 		else
 			firstproc="foo_proccess_foo"
 			touch $COORDFOLDER/proccesscontrol
@@ -551,7 +551,7 @@ function readstoFastqFunction {
 
 function pathoscopeFunction {
 
-		echo "wake up pathoscope"
+		echo "Wake up pathoscope2"
 		FILE=$IRFILE
 		readstoFastqFunction
 		cd $TMPNAME
@@ -578,14 +578,13 @@ function pathoscopeFunction {
 		TOCLEAN=$RFILE
 		IRFILE=$FILE
 
- 
 }
 
 function metaphlanFunction {
 
 		FILE=$IRFILE
 
-		echo "wake up metaphlan"
+		echo "Wake up metaphlan2"
 		readstoFastqFunction
 		cd $TMPNAME
 
@@ -610,7 +609,7 @@ function metaphlanFunction {
 
 function metamixFunction {
 
-		echo "wake up metamix"
+		echo "Wake up metamix"
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
@@ -621,7 +620,7 @@ function metamixFunction {
 					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					
-					if mkdir $TMPNAME/metamix_$P1.$P2; then #we make new folder because is easier to clean after execution
+					if mkdir $TMPNAME/metamix_$P1.$P2 1>null; then #we make new folder because is easier to clean after execution
 						echo "folder metamix_$P1.$P2 created"
 					else
 						echo "Metamix: cleaning previous run"
@@ -663,7 +662,7 @@ function metamixFunction {
 		else
 			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 
-			if mkdir $TMPNAME/metamix_$SINGLE; then #we make new folder because is easier to clean after execution
+			if mkdir $TMPNAME/metamix_$SINGLE 1>null; then #we make new folder because is easier to clean after execution
 				echo "folder metamix_$SINGLE created"
 			else
 				echo "Metamix: cleaning previous run"
@@ -690,14 +689,14 @@ function metamixFunction {
 
 function sigmaFunction {
 
-	echo "wake up sigma"
+	echo "Wake up sigma"
 	cd $TMPNAME
 
 	coresControlFunction 1
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
-		if mkdir $SGTOCLEAN ;then
+		if mkdir $SGTOCLEAN 1>null;then
 			cd $SGTOCLEAN
 		else
 			echo "sigma: cleaning previous run"
@@ -707,7 +706,7 @@ function sigmaFunction {
 		fi
 	else
 		SGTOCLEAN=sigma_$RFILE
-		if mkdir $SGTOCLEAN ;then
+		if mkdir $SGTOCLEAN 1>null;then
 			cd $SGTOCLEAN
 		else
 			echo "sigma: cleaning previous run"
@@ -730,7 +729,7 @@ function sigmaFunction {
 
 function krakenFunction {
 
-	echo "wake up kraken"
+	echo "Wake up kraken"
 	cd $TMPNAME
 	if [ "$READS" == "paired" ]; then
 		PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$1}'`
@@ -774,7 +773,7 @@ function krakenFunction {
 
 function taxatorFunction {
 
-		echo "wake up taxator-tk"
+		echo "Wake up taxator-tk"
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
 			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
@@ -785,7 +784,7 @@ function taxatorFunction {
 					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					
-					if mkdir $TMPNAME/taxator_$P1.$P2; then #we make new folder because is easier to clean after execution
+					if mkdir $TMPNAME/taxator_$P1.$P2 1>null; then #we make new folder because is easier to clean after execution
 						echo "folder taxator_$P1.$P2 created"
 					else
 						echo "Taxator: cleaning previous run"
@@ -815,7 +814,7 @@ function taxatorFunction {
 
 			        cd ..
 					cd ..
-									
+					
 				else
 					echo "$PAIREND2 no exist"
 					exit
@@ -827,7 +826,7 @@ function taxatorFunction {
 		else
 			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 
-			if mkdir $TMPNAME/taxator_$SINGLE; then #we make new folder because is easier to clean after execution
+			if mkdir $TMPNAME/taxator_$SINGLE 1>null; then #we make new folder because is easier to clean after execution
 				echo "folder taxator_$SINGLE created"
 			else
 				echo "Taxator: cleaning previous run"
@@ -936,7 +935,7 @@ function sigmaFunction2 {
 
 function constrainsFunction {
 
-	echo "wake up constrains"
+	echo "Wake up constrains"
 
 	readstoFastqFunction
 
@@ -1018,7 +1017,7 @@ function taxatorFunction2 {
 
 
 		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab > $P1.$P2.gff3
-		${TAXATORHOME}/bin/binner -n "$P1.$P2" < $P1.$P2.gff3 > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > TimeTXf2_$P1.$P2 &
+		${TAXATORHOME}/bin/binner -n "$P1.$P2" < $P1.$P2.gff3 > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
 
 		cd ..
 	else
@@ -1048,9 +1047,10 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
-		cat $TMPNAME/TimePSf1_$RFILE $TMPNAME/TimePSf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimePS_$RFILE
-		newpatname=`echo "TimePS_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv TimePS_$RFILE $newpatname
+		newpatname=`echo "TimePSf1_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv $TMPNAME/TimePSf1_$RFILE $newpatname
+		newpatname=`echo "TimePSf2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv $TMPNAME/TimePSf2_$RFILE $newpatname
 
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
@@ -1071,20 +1071,23 @@ function lastStepFunction {
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cat $TMPNAME/TimeMXf1_$P1.$P2 $TMPNAME/TimeMXf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMX_$P1.$P2
+			mv $TMPNAME/TimeMXf1_$P1.$P2 . 
+			mv $TMPNAME/TimeMXf2_$P1.$P2 .
 			rm -rf $TMPNAME/metamix_$P1.$P2
 		else
-			cat $TMPNAME/TimeMXf1_$SINGLE $TMPNAME/TimeMXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMX_$SINGLE
+			mv $TMPNAME/TimeMXf1_$SINGLE .
+			mv $TMPNAME/TimeMXf2_$SINGLE .
 			rm -rf $TMPNAME/metamix_$SINGLE
 		fi
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		cat $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeSG_$RFILE
-		newsigname=`echo "TimeSG_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv TimeSG_$RFILE $newsigname
-		rm -f $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
+		newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
+		newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		mv $TMPNAME/TimeSGf2_$RFILE $newsigname
 
+		rm -f $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
 		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
 		newsigname=`echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}'`
@@ -1102,15 +1105,19 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cat $TMPNAME/TimeKRf1_$P1.$P2 $TMPNAME/TimeKRf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$P1.$P2
+			cp $TMPNAME/TimeKRf1_$P1.$P2 .
+			cp $TMPNAME/TimeKRf2_$P1.$P2 .
 			rm -f $TMPNAME/TimeKRf1_$P1.$P2 $TMPNAME/TimeKRf2_$P1.$P2
+
+
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
 			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > $P1.$P2.kraken.tmp
 			rm -f kraken_trans_$P1.$P2.kraken
 			mv $P1.$P2.kraken.tmp kraken_$P1.$P2.kraken
 		else
-			cat $TMPNAME/TimeKRf1_$SINGLE $TMPNAME/TimeKRf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' >TimeKR_$SINGLE
-			rm -f $TMPNAME/kraken_$SINGLE.kraken $TMPNAME/TimeKRf1_$SINGLE $TMPNAME/TimeKRf2_$SINGLE
+			mv $TMPNAME/TimeKRf1_$SINGLE .
+			mv $TMPNAME/TimeKRf2_$SINGLE .
+
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
 			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > $SINGLE.kraken.tmp
 			rm kraken_trans_$SINGLE.kraken
@@ -1120,11 +1127,13 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "TAXATOR" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cat $TMPNAME/TimeTXf1_$P1.$P2 $TMPNAME/TimeTXf2_$P1.$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$P1.$P2
+			cp $TMPNAME/TimeTXf1_$P1.$P2 .
+			cp $TMPNAME/TimeTXf2_$P1.$P2 .
 			rm -rf $TMPNAME/taxator_$P1.$P2 $TMPNAME/$P1.$P2 $TMPNAME/$P1.$P2.gff3
 			mv $TMPNAME/taxator_$P1.$P2.tax .
 		else
-			cat $TMPNAME/TimeTXf1_$SINGLE $TMPNAME/TimeTXf2_$SINGLE |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTX_$SINGLE
+			cp $TMPNAME/TimeTXf1_$SINGLE .
+			cp $TMPNAME/TimeTXf2_$SINGLE .
 			rm -rf $TMPNAME/taxator_$SINGLE
 		fi
 	fi
@@ -1561,6 +1570,7 @@ if [ $((statusband)) -ge 1 ]; then
 			   wait $pid
 			done
 			unset pids
+
 			lastStepFunction
 else
 	echo "Invalid or Missing Parameters, print --help to see the options"
