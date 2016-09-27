@@ -1008,7 +1008,7 @@ function taxatorFunction2 {
 		cat TimeTXf1_$P1 TimeTXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTXf1_$P1.$P2
 		rm -f TimeTXf1_$P1 TimeTXf1_$P2
 		cd taxator_$P1.$P2
-		BACKUPNAME=`echo "taxator_$P1.$P2"`
+
 		cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
 		rm blastOut$P1.tab blastOut$P2.tab
 
@@ -1016,22 +1016,31 @@ function taxatorFunction2 {
 		cat ../../$PAIREND1 ../../$PAIREND2 > $P1.$P2
 
 
-		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab > $P1.$P2.gff3
-		${TAXATORHOME}/bin/binner -n "$P1.$P2" < $P1.$P2.gff3 > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
+		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab |${TAXATORHOME}/bin/binner -n "$P1.$P2" > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
+		# ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab > $P1.$P2.gff3
+		# ${TAXATORHOME}/bin/binner -n "$P1.$P2" < $P1.$P2.gff3 > taxator_$P1.$P2.tax &
+
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid $CORES taxatorF2" >> $COORDFOLDER/proccesscontrol
+		coresunlockFunction
 
 		cd ..
 	else
 		cd taxator_$SINGLE
-
+	
+		lastpid=$!
+		pids[${pindex}]=$lastpid
+		pindex=$((pindex+1))
+		echo "$lastpid $CORES taxatorF2" >> $COORDFOLDER/proccesscontrol
+		coresunlockFunction
 
 
 		cd ..
 	fi
-	lastpid=$!
-	pids[${pindex}]=$lastpid
-	pindex=$((pindex+1))
-	echo "$lastpid $CORES taxatorF2" >> $COORDFOLDER/proccesscontrol
-	coresunlockFunction
+	
+
 	cd ..
 
 }
@@ -1127,10 +1136,11 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "TAXATOR" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cp $TMPNAME/TimeTXf1_$P1.$P2 .
-			cp $TMPNAME/TimeTXf2_$P1.$P2 .
-			rm -rf $TMPNAME/taxator_$P1.$P2 $TMPNAME/$P1.$P2 $TMPNAME/$P1.$P2.gff3
-			mv $TMPNAME/taxator_$P1.$P2.tax .
+			cp $TMPNAME/TimeTXf1_$P1.$P2 . && rm -f $TMPNAME/TimeTXf1_$P1.$P2
+			cp $TMPNAME/TimeTXf2_$P1.$P2 . && rm -f $TMPNAME/TimeTXf2_$P1.$P2
+			cp $TMPNAME/taxator_$P1.$P2/taxator_$P1.$P2.tax .
+			rm -rf $TMPNAME/taxator_$P1.$P2
+
 		else
 			cp $TMPNAME/TimeTXf1_$SINGLE .
 			cp $TMPNAME/TimeTXf2_$SINGLE .
