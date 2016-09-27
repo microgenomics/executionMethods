@@ -559,11 +559,11 @@ function pathoscopeFunction {
 
 
 		if [ "$PSFDB" == "" ];then
-			{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
+			{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		else
-			{ time python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
+			{ time python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
@@ -620,7 +620,7 @@ function metamixFunction {
 					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					
-					if mkdir $TMPNAME/metamix_$P1.$P2 1>null; then #we make new folder because is easier to clean after execution
+					if mkdir $TMPNAME/metamix_$P1.$P2 1>/dev/null; then #we make new folder because is easier to clean after execution
 						echo "folder metamix_$P1.$P2 created"
 					else
 						echo "Metamix: cleaning previous run"
@@ -662,7 +662,7 @@ function metamixFunction {
 		else
 			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 
-			if mkdir $TMPNAME/metamix_$SINGLE 1>null; then #we make new folder because is easier to clean after execution
+			if mkdir $TMPNAME/metamix_$SINGLE 1>/dev/null; then #we make new folder because is easier to clean after execution
 				echo "folder metamix_$SINGLE created"
 			else
 				echo "Metamix: cleaning previous run"
@@ -696,7 +696,7 @@ function sigmaFunction {
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
-		if mkdir $SGTOCLEAN 1>null;then
+		if mkdir $SGTOCLEAN 1>/dev/null;then
 			cd $SGTOCLEAN
 		else
 			echo "sigma: cleaning previous run"
@@ -706,7 +706,7 @@ function sigmaFunction {
 		fi
 	else
 		SGTOCLEAN=sigma_$RFILE
-		if mkdir $SGTOCLEAN 1>null;then
+		if mkdir $SGTOCLEAN 1>/dev/null;then
 			cd $SGTOCLEAN
 		else
 			echo "sigma: cleaning previous run"
@@ -716,7 +716,9 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
+	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
+	# ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
+
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
@@ -784,7 +786,7 @@ function taxatorFunction {
 					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 					
-					if mkdir $TMPNAME/taxator_$P1.$P2 1>null; then #we make new folder because is easier to clean after execution
+					if mkdir $TMPNAME/taxator_$P1.$P2 1>/dev/null; then #we make new folder because is easier to clean after execution
 						echo "folder taxator_$P1.$P2 created"
 					else
 						echo "Taxator: cleaning previous run"
@@ -826,7 +828,7 @@ function taxatorFunction {
 		else
 			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 
-			if mkdir $TMPNAME/taxator_$SINGLE 1>null; then #we make new folder because is easier to clean after execution
+			if mkdir $TMPNAME/taxator_$SINGLE 1>/dev/null; then #we make new folder because is easier to clean after execution
 				echo "folder taxator_$SINGLE created"
 			else
 				echo "Taxator: cleaning previous run"
@@ -857,10 +859,10 @@ function pathoscopeFunction2 {
 
 	coresControlFunction 1
 	if [ "$PRIOR" == "" ];then
-		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
+		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
 
 	else
-		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
+		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
 	fi
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -889,7 +891,7 @@ function metamixFunction2 {
 			rm blastOut$P1.tab blastOut$P2.tab
 			executionpath=`pwd`
 
-			{ time -p executeMetamix blastOut$P1.$P2.tab $executionpath 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$P1.$P2 &
+			{ time -p executeMetamix blastOut$P1.$P2.tab $executionpath 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$P1.$P2 &
 
 			cd ..
 
@@ -899,7 +901,7 @@ function metamixFunction2 {
 			echo "execute metamix R function"
 			executionpath=`pwd`
 
-			{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
+			{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
 
 			cd ..
 		fi
@@ -919,7 +921,7 @@ function sigmaFunction2 {
 	coresControlFunction $CORES
 
 	echo "executing sigma wrapper module"	
-    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
+    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
 	#${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
 
 	lastpid=$!
@@ -961,7 +963,7 @@ function constrainsFunction {
 			metaphlan: ../$newcsname" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
-			{ time -p python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
+			{ time -p python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -1360,25 +1362,25 @@ function sigmaCfileFunction {
 		#RFILE=`echo "$F1,$F2"`
 		
 		echo "[Program_Info]
-		Bowtie_Directory=$BOWTIE2HOME/bin
-		Samtools_Directory=$SAMTOOLSHOME/bin
-		[Data_Info]
-		Reference_Genome_Directory=$DBSG
-		Paired_End_Reads_1=$FASTQFOLDER/$F1
-		Paired_End_Reads_2=$FASTQFOLDER/$F2
-		[Bowtie_Search]
-		Maximum_Mismatch_Count=3
-		Minimum_Fragment_Length=0
-		Maximum_Fragment_Length=2000
-		Bowtie_Threads_Number=$THREADS
-		[Model_Probability]
-		Mismatch_Probability=0.05
-		Minimum_Relative_Abundance = 0.01
-		[Statistics]
-		Bootstrap_Iteration_Number=10
-		Minumum_Coverage_Length=$SIZE
-		Minimum_Average_Coverage_Depth=3
-		" > $TMPNAME/sigma_$RFILE""_config.cfg
+Bowtie_Directory=$BOWTIE2HOME/bin
+Samtools_Directory=$SAMTOOLSHOME/bin
+[Data_Info]
+Reference_Genome_Directory=$DBSG
+Paired_End_Reads_1=$FASTQFOLDER/$F1
+Paired_End_Reads_2=$FASTQFOLDER/$F2
+[Bowtie_Search]
+Maximum_Mismatch_Count=3
+Minimum_Fragment_Length=0
+Maximum_Fragment_Length=2000
+Bowtie_Threads_Number=$THREADS
+[Model_Probability]
+Mismatch_Probability=0.05
+Minimum_Relative_Abundance = 0.01
+[Statistics]
+Bootstrap_Iteration_Number=10
+Minumum_Coverage_Length=$SIZE
+Minimum_Average_Coverage_Depth=3
+" > $TMPNAME/sigma_$RFILE""_config.cfg
 		
 	else
 		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
@@ -1390,25 +1392,25 @@ function sigmaCfileFunction {
 		cd ..
 
 		echo "[Program_Info]
-		Bowtie_Directory=$BOWTIE2HOME
-		Samtools_Directory=$SAMTOOLSHOME
-		[Data_Info]
-		Reference_Genome_Directory=$DBSG
-		Single_End_Reads=$FASTQFOLDER/$RFILE
-		[Bowtie_Search]
-		Maximum_Mismatch_Count=3
-		Minimum_Fragment_Length=0
-		Maximum_Fragment_Length=2000
-		Bowtie_Threads_Number=$THREADS
-		[Model_Probability]
-		Mismatch_Probability=0.05
-		Minimum_Relative_Abundance = 0.01
-		[Statistics]
-		Bootstrap_Iteration_Number=10
-		Minumum_Coverage_Length=$SIZE
-		Minimum_Average_Coverage_Depth=3
-		" > $TMPNAME/sigma_$RFILE""_config.cfg
-
+Bowtie_Directory=$BOWTIE2HOME
+Samtools_Directory=$SAMTOOLSHOME
+[Data_Info]
+Reference_Genome_Directory=$DBSG
+Single_End_Reads=$FASTQFOLDER/$RFILE
+[Bowtie_Search]
+Maximum_Mismatch_Count=3
+Minimum_Fragment_Length=0
+Maximum_Fragment_Length=2000
+Bowtie_Threads_Number=$THREADS
+[Model_Probability]
+Mismatch_Probability=0.05
+Minimum_Relative_Abundance = 0.01
+[Statistics]
+Bootstrap_Iteration_Number=10
+Minumum_Coverage_Length=$SIZE
+Minimum_Average_Coverage_Depth=3
+" > $TMPNAME/sigma_$RFILE""_config.cfg
+	
 	fi
 
 }
