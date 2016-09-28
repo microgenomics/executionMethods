@@ -144,6 +144,9 @@ do
 					"THREADS")
 						THREADS=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
+					"PYTHONBIN")
+						PYTHONBIN=$(echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g")		
+					;;
 					"PATHOSCOPEHOME")
 						PATHOSCOPEHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
 					;;
@@ -434,8 +437,11 @@ function coresControlFunction {
 
 	request=$1
 	if mkdir $COORDFOLDER/lockfolder_donttouch > /dev/null 2>&1; then
-		if [ -f $COORDFOLDER/corescontrol ]; then
-			i=`tail -n1 $COORDFOLDER/corescontrol`
+
+		echo "coresControlFunction called by $2"
+
+		if [ -f "$COORDFOLDER"/corescontrol ]; then
+			i=$(tail -n1 $COORDFOLDER/corescontrol)
 		else
 			touch $COORDFOLDER/corescontrol
 			i=0
@@ -451,7 +457,7 @@ function coresControlFunction {
 
 		if [ $((i)) -ge $((maxexe)) ]; then
 
-			while [[ ( -d /proc/$firstproc ) && ( -z "grep zombie /proc/$firstproc/status" ) ]]; do
+			while [[ ( -d /proc/"$firstproc" ) && ( -z "grep zombie /proc/$firstproc/status" ) ]]; do
 				#echo "waiting for proccess $firstproc"
  		          sleep 61
  		      done
@@ -464,8 +470,8 @@ function coresControlFunction {
  		      rm $COORDFOLDER/corescontrol
  		      mv toreplace $COORDFOLDER/corescontrol
 
-			i=`echo "$i $firstcore" |awk '{print $1-$2}'`
-			echo "$i" >>$COORDFOLDER/corescontrol
+			i=$(echo "$i $firstcore" |awk '{print $1-$2}')
+			echo "$i" >> "$COORDFOLDER"/corescontrol
 
 		else
 			echo "$request $i" |awk -v maxexe=$maxexe '{if($1+$2>=maxexe){print maxexe}else{print $1+$2}}' >>$COORDFOLDER/corescontrol
@@ -555,15 +561,15 @@ function pathoscopeFunction {
 		FILE=$IRFILE
 		readstoFastqFunction "pathoscope2"
 		cd $TMPNAME
-		coresControlFunction 1
+		coresControlFunction 1 "Pathoscope2 F1"
 
 
 		if [ "$PSFDB" == "" ];then
-			{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
+			{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		else
-			{ time python ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
+			{ time ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
 			lastpid=$!
 			SAMFILE=pathoscope_$RFILE.sam
 		fi
@@ -588,12 +594,12 @@ function metaphlanFunction {
 		readstoFastqFunction "metaphlan2"
 		cd $TMPNAME
 
-		coresControlFunction 1
+		coresControlFunction 1 "Metaphlan2 F1"
 		if [ -f "bowtieout$RFILE.bz2" ];then
 			rm -f bowtieout$RFILE.bz2
 		fi
 
-		{ time -p python ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$RFILE &
+		{ time -p ${PYTHONBIN} ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$RFILE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -631,7 +637,7 @@ function metamixFunction {
 					cd $TMPNAME
 					cd metamix_$P1.$P2
 					
-					coresControlFunction 1
+					coresControlFunction 1 "Metamix F1_1"
 					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
@@ -640,7 +646,7 @@ function metamixFunction {
 					coresunlockFunction
 
 
-					coresControlFunction 1
+					coresControlFunction 1 "Metamix F1_2"
 					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
@@ -673,7 +679,7 @@ function metamixFunction {
 			cd $TMPNAME
 			cd metamix_$SINGLE
 
-			coresControlFunction $CORES
+			coresControlFunction 1 "Metamix F1"
 
 			{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
 			lastpid=$!
@@ -692,7 +698,7 @@ function sigmaFunction {
 	echo "Wake up sigma"
 	cd $TMPNAME
 
-	coresControlFunction 1
+	coresControlFunction 1 "Sigma F1"
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
@@ -743,7 +749,7 @@ function krakenFunction {
 				P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 				P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 								
-				coresControlFunction 1
+				coresControlFunction 1 "Kraken F1"
 				{ time -p ${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$P1.$P2 &
 				lastpid=$!
 				pids[${pindex}]=$lastpid
@@ -760,7 +766,7 @@ function krakenFunction {
 			exit
 		fi
 	else
-		coresControlFunction 1
+		coresControlFunction 1 "Kraken F1"
 		SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 		{ time -p ${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$SINGLE &
 		lastpid=$!
@@ -797,7 +803,7 @@ function taxatorFunction {
 					cd $TMPNAME
 					cd taxator_$P1.$P2
 					
-					coresControlFunction 1
+					coresControlFunction 1 "Taxator F1_1"
 					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
@@ -806,7 +812,7 @@ function taxatorFunction {
 					coresunlockFunction
 
 
-					coresControlFunction 1
+					coresControlFunction 1 "Taxator F1_2"
 					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
@@ -839,7 +845,7 @@ function taxatorFunction {
 			cd $TMPNAME
 			cd taxator_$SINGLE
 
-			coresControlFunction $CORES
+			coresControlFunction $CORES "Taxator F1"
 
 			{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
 			lastpid=$!
@@ -857,12 +863,12 @@ function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
 
-	coresControlFunction 1
+	coresControlFunction 1 "Pathoscope2 F2"
 	if [ "$PRIOR" == "" ];then
-		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
+		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
 
 	else
-		{ time -p python ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
+		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
 	fi
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -878,7 +884,7 @@ function metamixFunction2 {
 
 	cd $TMPNAME
 
-	coresControlFunction 12 #parallel tempering requires 12 cores
+	coresControlFunction 12 "Metamix F2" #parallel tempering requires 12 cores
 
 		if [ "$READS" == "paired" ]; then
 			cat TimeMXf1_$P1 TimeMXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMXf1_$P1.$P2
@@ -942,7 +948,7 @@ function constrainsFunction {
 	readstoFastqFunction "constrains"
 
 	cd $TMPNAME
-	coresControlFunction $CORES
+	coresControlFunction $CORES "Constrains F2"
 	if [ -f "../metaphlan_$RFILE.dat" ];then
 		CSERROR=0
 		CSTOCLEAN=`echo "$RFILE" |awk 'BEGIN{FS=","}{print "constrains_"$1"."$2}'`
@@ -960,8 +966,8 @@ function constrainsFunction {
 			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
-			{ time -p python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
-			exit
+			# { time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
+			${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -1152,6 +1158,12 @@ function criticalvariablesFunction {
 
 	pass=0
 	echo "Checking critical variables:"
+
+	if [ ! -f "$PYTHONBIN" ];then
+		echo "* You must provide the python binary e.g. /usr/bin/python"
+		pass=$((pass+1))
+	fi
+
 	if [ "$IRFILE" == "" ];then
 		echo "* You must provide a read file"
 		pass=$((pass+1))
@@ -1552,7 +1564,7 @@ if [ $((statusband)) -ge 1 ]; then
 						pathoscopeFunction2
 				   	;;
 					"METAPHLAN")
-						echo "metaphlan done"
+						echo "Metaphlan done"
 					;;
 					"METAMIX")
 						metamixFunction2
@@ -1578,7 +1590,6 @@ if [ $((statusband)) -ge 1 ]; then
 			   wait $pid
 			done
 			unset pids
-
 			lastStepFunction
 else
 	echo "Invalid or Missing Parameters, print --help to see the options"
