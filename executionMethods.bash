@@ -485,7 +485,7 @@ function coresunlockFunction {
 
 function fastalockFunction {
 	if mkdir fastalock; then
-		echo "fastalock created"
+		echo "fastalock created by $1"
 	else
 		sleep 60
 		fastalockFunction
@@ -507,7 +507,7 @@ function readstoFastqFunction {
 					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 
-					fastalockFunction
+					fastalockFunction $1
 					if [ -f fasta_to_fastq.pl ]; then
 						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
 							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
@@ -532,7 +532,7 @@ function readstoFastqFunction {
 				exit
 			fi
 		else
-			fastalockFunction
+			fastalockFunction $1
 			if [ -f fasta_to_fastq.pl ]; then
 				if [ ! -f $TMPNAME/$SINGLE.fastq ];then
 					perl fasta_to_fastq.pl $IRFILE > $TMPNAME/$SINGLE.fastq
@@ -553,7 +553,7 @@ function pathoscopeFunction {
 
 		echo "Wake up pathoscope2"
 		FILE=$IRFILE
-		readstoFastqFunction
+		readstoFastqFunction "pathoscope2"
 		cd $TMPNAME
 		coresControlFunction 1
 
@@ -585,7 +585,7 @@ function metaphlanFunction {
 		FILE=$IRFILE
 
 		echo "Wake up metaphlan2"
-		readstoFastqFunction
+		readstoFastqFunction "metaphlan2"
 		cd $TMPNAME
 
 		coresControlFunction 1
@@ -921,7 +921,7 @@ function sigmaFunction2 {
 	coresControlFunction $CORES
 
 	echo "executing sigma wrapper module"	
-    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeSGf2_$RFILE &
+    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
 	#${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
 
 	lastpid=$!
@@ -939,14 +939,11 @@ function constrainsFunction {
 
 	echo "Wake up constrains"
 
-	readstoFastqFunction
+	readstoFastqFunction "constrains"
 
 	cd $TMPNAME
 	coresControlFunction $CORES
-
-	#AVIABLE=`awk -v avi=$i -v total=$CORES '{print (total-avi)}'`	CSTOCLEAN=constrains_$RFILE
-	newcsname=`echo metaphlan_$RFILE.dat |awk -F "," '{print $1"."$2}'`
-	if [ -f "../$newcsname" ];then
+	if [ -f "../metaphlan_$RFILE.dat" ];then
 		CSERROR=0
 		CSTOCLEAN=`echo "$RFILE" |awk 'BEGIN{FS=","}{print "constrains_"$1"."$2}'`
 
@@ -956,20 +953,21 @@ function constrainsFunction {
 			echo "sample: $RFILE
 			fq1: $F1
 			fq2: $F2
-			metaphlan: ../$newcsname" > cs_config_$RFILE.conf
+			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
 		else
 			echo "sample: $RFILE 
 			fq: $RFILE
-			metaphlan: ../$newcsname" > cs_config_$RFILE.conf
+			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
 			{ time -p python ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
+			exit
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
 			echo "$lastpid $CORES constrains" >> $COORDFOLDER/proccesscontrol
 	else
-			echo "Constrains: no $newcsname file found, impossible continue"
+			echo "Constrains: no metaphlan_$RFILE.dat file found, impossible continue"
 			CSERROR=1
 	fi
 	coresunlockFunction
@@ -1059,9 +1057,9 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 		newpatname=`echo "TimePSf1_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv $TMPNAME/TimePSf1_$RFILE $newpatname
+		cp $TMPNAME/TimePSf1_$RFILE $newpatname && rm -f $TMPNAME/TimePSf1_$RFILE
 		newpatname=`echo "TimePSf2_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv $TMPNAME/TimePSf2_$RFILE $newpatname
+		cp $TMPNAME/TimePSf2_$RFILE $newpatname && rm -f $TMPNAME/TimePSf2_$RFILE
 
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
@@ -1071,19 +1069,18 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		mv $TMPNAME/TimeM2_$RFILE .
 		newmetname=`echo "TimeM2_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv TimeM2_$RFILE $newmetname
-
+		cp $TMPNAME/TimeM2_$RFILE $newmetname && rm -f $TMPNAME/TimeM2_$RFILE
+		
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 		newmetname=`echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}'`
-		mv metaphlan_$RFILE.dat $newmetname
+		cp metaphlan_$RFILE.dat $newmetname && rm -f metaphlan_$RFILE.dat
 	fi
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 		if [ "$READS" == "paired" ]; then
-			mv $TMPNAME/TimeMXf1_$P1.$P2 . 
-			mv $TMPNAME/TimeMXf2_$P1.$P2 .
+			cp $TMPNAME/TimeMXf1_$P1.$P2 . && rm -f $TMPNAME/TimeMXf1_$P1.$P2
+			cp $TMPNAME/TimeMXf2_$P1.$P2 . && rm -f $TMPNAME/TimeMXf2_$P1.$P2
 			rm -rf $TMPNAME/metamix_$P1.$P2
 		else
 			mv $TMPNAME/TimeMXf1_$SINGLE .
@@ -1094,12 +1091,11 @@ function lastStepFunction {
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
 		newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
+		cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
 		newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
-		mv $TMPNAME/TimeSGf2_$RFILE $newsigname
+		cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
 
-		rm -f $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $TMPNAME/TimeSGf2_$RFILE
-		mv $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
+		cp $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
 		newsigname=`echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}'`
 		mv $SGTOCLEAN.gvector.txt $newsigname
@@ -1107,8 +1103,8 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "CONSTRAINS" ]] && [ "$CSERROR" -eq 0 ]; then
 		newsigname=`echo "TimeCS_$RFILE" |awk -F "," '{print $1"."$2}'`		
-		mv $TMPNAME/TimeCS_$RFILE $newsigname
-		mv $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
+		cp $TMPNAME/TimeCS_$RFILE $newsigname && rm -f $TMPNAME/TimeCS_$RFILE
+		cp $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
 
@@ -1354,7 +1350,7 @@ function sigmaCfileFunction {
 		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}' |rev |cut -d "/" -f 1 |rev`
 		F2=`echo "$F2.fastq"`
 		
-		readstoFastqFunction
+		readstoFastqFunction "sigma"
 		cd $TMPNAME	
 		FASTQFOLDER=`pwd`
 		cd ..
@@ -1384,7 +1380,7 @@ Minimum_Average_Coverage_Depth=3
 		
 	else
 		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
-		readstoFastqFunction
+		readstoFastqFunction "sigma"
 		RFILE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
 		RFILE=`echo "$IRFILE.fastq"`
 		cd $TMPNAME	
