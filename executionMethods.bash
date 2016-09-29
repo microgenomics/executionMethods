@@ -490,7 +490,7 @@ function coresunlockFunction {
 }
 
 function fastalockFunction {
-	if mkdir fastalock; then
+	if mkdir fastalock > /dev/null 2>&1; then
 		echo "fastalock created by $1"
 	else
 		sleep 60
@@ -966,8 +966,8 @@ function constrainsFunction {
 			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
 			CSTOCLEAN=constrains_$RFILE
 		fi
-			# { time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
-			${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py
+			{ time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
+			# ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
