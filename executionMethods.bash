@@ -514,18 +514,14 @@ function readstoFastqFunction {
 					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
 
 					fastalockFunction $1
-					if [ -f fasta_to_fastq.pl ]; then
-						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
-						fi
-					else
-						fasta_to_fastqFunction 
-						if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
-							perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
-							perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
-						fi
+					fasta_to_fastqFunction 
+
+					if [ ! -f $TMPNAME/$NAMEPAIREND1.fastq ];then
+						perl fasta_to_fastq.pl $PAIREND1 > $TMPNAME/$NAMEPAIREND1.fastq
+						perl fasta_to_fastq.pl $PAIREND2 > $TMPNAME/$NAMEPAIREND2.fastq
 					fi
+
+					rm -f fasta_to_fastq.pl
 					fastaunlockFunction
 
 					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
