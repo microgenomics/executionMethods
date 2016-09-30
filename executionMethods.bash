@@ -920,7 +920,7 @@ function sigmaFunction2 {
 	cd $TMPNAME 
 	cd $SGTOCLEAN
 
-	coresControlFunction $CORES
+	coresControlFunction $CORES "Sigma F2"
 
 	echo "executing sigma wrapper module"	
     { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
@@ -982,7 +982,7 @@ function constrainsFunction {
 function krakenFunction2 {
 
 	cd $TMPNAME
-	coresControlFunction 1
+	coresControlFunction 1 "Kraken F2"
 
 	if [ "$READS" == "paired" ]; then
 		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$P1.$P2 &
@@ -1004,7 +1004,7 @@ function taxatorFunction2 {
 
 	cd $TMPNAME
 
-	coresControlFunction $CORES
+	coresControlFunction $CORES "Taxator F2"
 
 	if [ "$READS" == "paired" ]; then
 		cat TimeTXf1_$P1 TimeTXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeTXf1_$P1.$P2
