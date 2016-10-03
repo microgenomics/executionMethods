@@ -718,8 +718,8 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
-	# ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
+	# { time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
+	${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -923,8 +923,8 @@ function sigmaFunction2 {
 	coresControlFunction $CORES "Sigma F2"
 
 	echo "executing sigma wrapper module"	
-    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
-	#${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
+    # { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
+	${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -1092,10 +1092,10 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
-		cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
-		newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
-		cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
+		#newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
+		#cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
+		#newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		#cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
 
 		cp $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
@@ -1262,7 +1262,7 @@ function criticalvariablesFunction {
 				SIGMACFILE=`echo "sigma_$RFILE""_config.cfg"`
 
 			else
-				echo "$errormessage"
+				echo "* You must fix this errors to continue"
 				exit
 			fi
 
@@ -1362,7 +1362,7 @@ function sigmaCfileFunction {
 		cd $TMPNAME	
 		FASTQFOLDER=`pwd`
 		cd ..
-		RFILE=`echo "$F1,$F2"`
+		RFILE=$(echo "$F1.$F2")
 		#RFILE=`echo "$F1,$F2"`
 		
 		echo "[Program_Info]
@@ -1390,7 +1390,7 @@ Minimum_Average_Coverage_Depth=3
 		SIZE=`tail -n1 $IRFILE |wc |awk '{print $3}'`
 		readstoFastqFunction "sigma"
 		RFILE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
-		RFILE=`echo "$IRFILE.fastq"`
+		RFILE=`echo "$RFILE.fastq"`
 		cd $TMPNAME	
 		FASTQFOLDER=`pwd`
 		cd ..
