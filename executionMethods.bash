@@ -920,16 +920,18 @@ function sigmaFunction2 {
 	cd $TMPNAME 
 	cd $SGTOCLEAN
 
-	coresControlFunction $CORES "Sigma F2"
+	#Sigma don't allow several intances, so we set until 2 parallel instances
+	twoInstances=$(echo $CORES |awk '{print int($1/2)}')
+	coresControlFunction $twoInstances "Sigma F2"
 
 	echo "executing sigma wrapper module"	
-    # { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
-	${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
+    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
+	# ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
 	pindex=$((pindex+1))
-	echo "$lastpid $CORES sigmaF2" >> $COORDFOLDER/proccesscontrol
+	echo "$lastpid $twoInstances SigmaF2" >> $COORDFOLDER/proccesscontrol
 	coresunlockFunction
 
 	cd ..
@@ -1092,10 +1094,10 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		#newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
-		#cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
-		#newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
-		#cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
+		newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
+		cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
+		newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
 
 		cp $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
