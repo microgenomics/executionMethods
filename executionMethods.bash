@@ -718,8 +718,8 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	# { time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
-	${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
+	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
+	# ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
