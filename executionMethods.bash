@@ -1,4 +1,3 @@
-#make sure you have installed correctly the patogen detection software 
 if [[ "$@" =~ "--debug" ]]; then
 	set -ex
 else
