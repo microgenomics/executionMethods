@@ -44,7 +44,7 @@ Additionally, depending of the case, you have to use some of this flags:
 
 
 ##Configuration file
-This file contain several parameters to steer the script (most of them just serves in no local mode), the minimal parameters are:
+This file contain several parameters to steer the script, the minimal parameters are:
 
 	# executionMethods configuration file #
 	# add comments using the pound character

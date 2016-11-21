@@ -132,52 +132,52 @@ do
 
 			for parameter in `awk '{print}' $i`
 			do
-				Pname=`echo "$parameter" |awk 'BEGIN{FS="="}{print $1}'`		
+				Pname=$(echo "$parameter" |awk 'BEGIN{FS="="}{print $1}')	
 				case $Pname in
 					"METHOD")
-						METHOD=$(echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g")			
+						METHOD=$(echo "$parameter" | awk -F"=" '{print $2}' | sed "s/,/ /g")			
 					;;
 					"CORES")
-						CORES=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						CORES=$(echo "$parameter" | awk -F"=" '{print $2}')				
 					;;
 					"THREADS")
-						THREADS=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						THREADS=$(echo "$parameter" | awk -F"=" '{print $2}')					
 					;;
 					"PYTHONBIN")
-						PYTHONBIN=$(echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g")		
+						PYTHONBIN=$(echo "$parameter" | awk -F"=" '{print $2}')		
 					;;
 					"PATHOSCOPEHOME")
-						PATHOSCOPEHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						PATHOSCOPEHOME=$(echo "$parameter" | awk -F"=" '{print $2}')			
 					;;
 					"SIGMAHOME")
-						SIGMAHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						SIGMAHOME=$(echo "$parameter" | awk -F"=" '{print $2}')			
 					;;
 					"BLASTHOME")
-						BLASTHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						BLASTHOME=$(echo "$parameter" | awk -F"=" '{print $2}')					
 					;;
 					"METAPHLAN2HOME")
-						METAPHLAN2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`				
+						METAPHLAN2HOME=$(echo "$parameter" | awk -F"=" '{print $2}')			
 					;;
 					"CONSTRAINSHOME")
-						CONSTRAINSHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`					
+						CONSTRAINSHOME=$(echo "$parameter" | awk -F"=" '{print $2}')				
 					;;
 					"SAMTOOLSHOME")
-						SAMTOOLSHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+						SAMTOOLSHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"BOWTIE2HOME")
-						BOWTIE2HOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+						BOWTIE2HOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"KRAKENHOME")
-						KRAKENHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+						KRAKENHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"TAXATORHOME")
-						TAXATORHOME=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+						TAXATORHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"TAXATORTK_TAXONOMY_NCBI")
-						TAXATORTK_TAXONOMY_NCBI=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+						TAXATORTK_TAXONOMY_NCBI=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"COORDFOLDER")
-						COORDFOLDER=`echo "$parameter" | awk 'BEGIN{FS="="}{print $2}' | sed "s/,/ /g"`
+						COORDFOLDER=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;				
 				esac
 			done
