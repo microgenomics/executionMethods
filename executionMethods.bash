@@ -220,10 +220,11 @@ do
 		fi
 		
 		if [ $((dbm2band)) -eq 1 ]; then
-				if [ ! -f $METAPHLAN2HOME/metaphlan2.py ]; then
-					echo "metaphlan2.py no exist in $METAPHLAN2HOME"
-					exit
-				fi	
+			if [ ! -f $METAPHLAN2HOME/metaphlan2.py ]; then
+				echo "metaphlan2.py no exist in $METAPHLAN2HOME"
+				exit
+			fi	
+			
 			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
 			if [ $((ok)) -ge 1 ]; then
 				DBM2=`echo "$i" |rev |cut -d "/" -f 1 |rev`
@@ -1224,9 +1225,23 @@ function lastStepFunction {
 		else
 			cp $TMPNAME/TimeTXf1_$SINGLE .
 			cp $TMPNAME/TimeTXf2_$SINGLE .
+			cp $TMPNAME/taxator_$SINGLE/taxator_$SINGLE.tax .
 			rm -rf $TMPNAME/taxator_$SINGLE
 		fi
 	fi
+
+	if [[ "$METHOD" =~ "CENTRIFUGE" ]]; then
+		if [ "$READS" == "paired" ]; then
+			cp $TMPNAME/TimeCF_$P1.$P2 . && rm -f $TMPNAME/TimeCF_$P1.$P2
+			cp $TMPNAME/centrifuge_$P1.$P2/centrifuge_report.tsv centrifuge_$P1.$P2.tsv
+			rm -rf $TMPNAME/centrifuge_$P1.$P2
+		else
+			cp $TMPNAME/TimeCF_$SINGLE .
+			cp $TMPNAME/centrifuge_$SINGLE/centrifuge_report.tsv centrifuge_$SINGLE.tsv
+			rm -rf $TMPNAME/taxator_$SINGLE
+		fi
+	fi
+
 	echo "Done :D"
 
 }
