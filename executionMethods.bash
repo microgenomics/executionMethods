@@ -27,7 +27,7 @@ TOCLEAN=""
 SIGMACFILE=""
 TMPNAME="TMP_FOLDER"
 
-INITIALPATH=`pwd`
+INITIALPATH=$(pwd)
 
 for i in "$@"
 do
@@ -130,7 +130,7 @@ do
 				exit
 			fi
 
-			for parameter in `awk '{print}' $i`
+			for parameter in $(awk '{print}' $i)
 			do
 				Pname=$(echo "$parameter" |awk 'BEGIN{FS="="}{print $1}')	
 				case $Pname in
@@ -198,7 +198,7 @@ do
 			#first, we check if exist the pair end call.
 			IRFILE=$i
 			rfileband=0
-			READS=`echo "$i" |awk 'BEGIN{FS=","}{if($2 == ""){print "single"}else{print "paired"}}'`
+			READS=$(echo "$i" |awk 'BEGIN{FS=","}{if($2 == ""){print "single"}else{print "paired"}}')
 		fi
 		
 		if [ $((dbpsband)) -eq 1 ]; then
@@ -907,7 +907,7 @@ function centrifugeFunction {
 				exit
 			fi
 		else
-			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+			SINGLE=$(echo "$IRFILE" |rev |cut -d "/" -f 1 |rev)
 
 			if mkdir $TMPNAME/centrifuge_$SINGLE 1>/dev/null; then #we make new folder because is easier to clean after execution
 				echo "folder centrifuge_$SINGLE created"
