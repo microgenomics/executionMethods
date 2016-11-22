@@ -176,6 +176,12 @@ do
 					"TAXATORTK_TAXONOMY_NCBI")
 						TAXATORTK_TAXONOMY_NCBI=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
+					"CENTRIFUGEHOME")
+						CENTRIFUGEHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
+					;;
+					"CENTRIFUGEDB")
+						DBCF=$(echo "$parameter" | awk -F"=" '{print $2}')
+					;;
 					"COORDFOLDER")
 						COORDFOLDER=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;				
@@ -504,13 +510,13 @@ function fastaunlockFunction {
 
 function readstoFastqFunction {
 		if [ "$READS" == "paired" ]; then
-			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
-			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}')
+			PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}')
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
-					NAMEPAIREND1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-					NAMEPAIREND2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					NAMEPAIREND1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+					NAMEPAIREND2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
 
 					fastalockFunction $1
 					fasta_to_fastqFunction 
@@ -523,7 +529,7 @@ function readstoFastqFunction {
 					rm -f fasta_to_fastq.pl
 					fastaunlockFunction
 
-					RFILE=`echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq"`
+					RFILE=$(echo "$NAMEPAIREND1.fastq,$NAMEPAIREND2.fastq")
 				else
 					echo "$PAIREND2 doesn't exist"
 					exit
@@ -688,7 +694,7 @@ function metamixFunction {
 	
 }
 
-function sigmaFunction {
+function sigmaFunction { 
 
 	echo "Wake up sigma"
 	cd $TMPNAME
@@ -772,6 +778,7 @@ function krakenFunction {
 	fi
 
 	cd ..
+
 }
 
 function taxatorFunction {
@@ -854,6 +861,78 @@ function taxatorFunction {
 
 }
 
+function centrifugeFunction {
+
+		echo "Wake up centrifuge"
+		if [ "$READS" == "paired" ]; then
+			PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}')
+			PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}')
+			#next, check the files (tolerance to missing files)
+			if [ -f "$PAIREND1" ];then
+				if [ -f "$PAIREND2" ];then
+					
+					P1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+					P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
+					
+					if mkdir $TMPNAME/centrifuge_$P1.$P2 1>/dev/null; then #we make new folder because is easier to clean after execution
+						echo "folder centrifuge_$P1.$P2 created"
+					else
+						echo "Centrifuge: cleaning previous run"
+						rm -r $TMPNAME/centrifuge_$P1.$P2
+						mkdir $TMPNAME/centrifuge_$P1.$P2
+					fi
+
+					cd $TMPNAME
+					cd centrifuge_$P1.$P2
+					
+					coresControlFunction $CORES "Centrifuge F1"
+					{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
+					lastpid=$!
+					pids[${pindex}]=$lastpid
+					pindex=$((pindex+1))
+					echo "$lastpid $CORES centrifugeF1" >> $COORDFOLDER/proccesscontrol
+
+					coresunlockFunction
+
+			        cd ..
+					cd ..
+					
+				else
+					echo "$PAIREND2 no exist"
+					exit
+				fi
+			else
+				echo "$PAIREND1 no exist"
+				exit
+			fi
+		else
+			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+
+			if mkdir $TMPNAME/centrifuge_$SINGLE 1>/dev/null; then #we make new folder because is easier to clean after execution
+				echo "folder centrifuge_$SINGLE created"
+			else
+				echo "Centrifuge: cleaning previous run"
+				rm -r $TMPNAME/centrifuge_$SINGLE
+				mkdir $TMPNAME/centrifuge_$SINGLE
+			fi
+
+			cd $TMPNAME
+			cd taxator_$SINGLE
+
+			coresControlFunction $CORES "Centrifuge F1"
+
+			{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF $SINGLE > centrifuge_$SINGLE.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$SINGLE &
+			lastpid=$!
+			pids[${pindex}]=$lastpid
+			pindex=$((pindex+1))
+			echo "$lastpid $CORES CentrifugeF1" >> $COORDFOLDER/proccesscontrol
+			coresunlockFunction
+			cd ..
+			cd ..
+		fi	
+
+}
+
 function pathoscopeFunction2 {
 	echo "executing pathoscope ID module"
 	cd $TMPNAME
@@ -915,6 +994,7 @@ function metamixFunction2 {
 		cd ..
 
 }
+
 function sigmaFunction2 {
 	cd $TMPNAME 
 	cd $SGTOCLEAN
@@ -976,7 +1056,6 @@ function constrainsFunction {
 	coresunlockFunction
 
 	cd ..
-
 			
 }
 
@@ -1149,6 +1228,7 @@ function lastStepFunction {
 		fi
 	fi
 	echo "Done :D"
+
 }
 
 function criticalvariablesFunction {
@@ -1339,6 +1419,26 @@ function criticalvariablesFunction {
 			pass=$((pass+1))
 		fi
 
+	fi
+
+	if [[ "$METHOD" =~ "CENTRIFUGE" ]]; then
+		if [ "$DBCF" == "" ];then
+			echo "* You must provide a database (centrifuge index), for centrifuge in the config file"
+			pass=$((pass+1))
+		else
+			ok=$(ls -1 "$DBCF"* |wc -l |awk '{print $1}')
+			if [ $((ok)) -ge 1 ]; then
+				TMP=$(echo "$DBCF" |rev |cut -d "/" -f 1 |rev)
+				DBCFDIR=$(echo "$DBCF" |rev |cut -d "/" -f 2- |rev)
+				cd $DBCFDIR
+				dbpath=$(pwd)
+				DBCF=$(echo "$dbpath/$TMP")
+				cd $INITIALPATH
+			else
+				echo "$DBCF file have at least three .cf files"
+				pass=$((pass+1))				
+			fi
+		fi
 	fi
 
 	if [ $((pass)) -eq 0 ];then
@@ -1540,6 +1640,9 @@ if [ $((statusband)) -ge 1 ]; then
 					"TAXATOR")
 						taxatorFunction
 					;;
+					"CENTRIFUGE")
+						centrifugeFunction
+					;;
 				esac
 			done
 		
@@ -1578,6 +1681,9 @@ if [ $((statusband)) -ge 1 ]; then
 					;;
 					"TAXATOR")
 						taxatorFunction2
+					;;
+					"CENTRIFUGE")
+						echo "Centrifuge done"
 					;;
 				esac
 			done
