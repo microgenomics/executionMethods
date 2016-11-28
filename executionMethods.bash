@@ -704,7 +704,7 @@ function sigmaFunction {
 
 	if [ "$RTYPE" == "PAIRED" ];then
 		SGTOCLEAN=sigma_$RFILE
-		if mkdir $SGTOCLEAN 1>/dev/null;then
+		if mkdir $SGTOCLEAN > /dev/null 2>&1;then
 			cd $SGTOCLEAN
 		else
 			echo "sigma: cleaning previous run"
@@ -714,7 +714,7 @@ function sigmaFunction {
 		fi
 	else
 		SGTOCLEAN=sigma_$RFILE
-		if mkdir $SGTOCLEAN 1>/dev/null;then
+		if mkdir $SGTOCLEAN > /dev/null 2>&1;then
 			cd $SGTOCLEAN
 		else
 			echo "sigma: cleaning previous run"
@@ -930,7 +930,7 @@ function centrifugeFunction {
 			coresunlockFunction
 			cd ..
 			cd ..
-		fi	
+		fi
 
 }
 
