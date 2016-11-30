@@ -132,7 +132,7 @@ do
 
 			for parameter in $(grep -v "^#" $i |awk '{if($0!="")print}' )
 			do
-				Pname=$(echo "$parameter" |awk '-F"=" {print $1}')	
+				Pname=$(echo "$parameter" |awk -F"=" '{print $1}')	
 				case $Pname in
 					"METHOD")
 						METHOD=$(echo "$parameter" | awk -F"=" '{print $2}' | sed "s/,/ /g")			
