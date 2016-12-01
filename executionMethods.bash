@@ -130,7 +130,7 @@ do
 				exit
 			fi
 
-			awk '$0 !~ /^#/ {print}' $i |awk '{if($0!="")print}' |while read parameter
+			for parameter in $(awk '$0 !~ /^#/ {print}' $i |awk '{if($0!="")print}')
 			do
 				Pname=$(echo "$parameter" |awk -F"=" '{print $1}')
 				case $Pname in
