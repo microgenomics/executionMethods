@@ -130,36 +130,36 @@ do
 				exit
 			fi
 
-			for parameter in $(grep -v "^#" $i |awk '{if($0!="")print}' )
+			awk '$0 !~ /^#/ {print}' $i |awk '{if($0!="")print}' |while read parameter
 			do
-				Pname=$(echo "$parameter" |awk -F"=" '{print $1}')	
+				Pname=$(echo "$parameter" |awk -F"=" '{print $1}')
 				case $Pname in
 					"METHOD")
-						METHOD=$(echo "$parameter" | awk -F"=" '{print $2}' | sed "s/,/ /g")			
+						METHOD=$(echo "$parameter" | awk -F"=" '{print $2}' | sed "s/,/ /g")
 					;;
 					"CORES")
-						CORES=$(echo "$parameter" | awk -F"=" '{print $2}')				
+						CORES=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"THREADS")
-						THREADS=$(echo "$parameter" | awk -F"=" '{print $2}')					
+						THREADS=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"PYTHONBIN")
-						PYTHONBIN=$(echo "$parameter" | awk -F"=" '{print $2}')		
+						PYTHONBIN=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"PATHOSCOPEHOME")
-						PATHOSCOPEHOME=$(echo "$parameter" | awk -F"=" '{print $2}')			
+						PATHOSCOPEHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"SIGMAHOME")
-						SIGMAHOME=$(echo "$parameter" | awk -F"=" '{print $2}')			
+						SIGMAHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"BLASTHOME")
-						BLASTHOME=$(echo "$parameter" | awk -F"=" '{print $2}')					
+						BLASTHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"METAPHLAN2HOME")
-						METAPHLAN2HOME=$(echo "$parameter" | awk -F"=" '{print $2}')			
+						METAPHLAN2HOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"CONSTRAINSHOME")
-						CONSTRAINSHOME=$(echo "$parameter" | awk -F"=" '{print $2}')				
+						CONSTRAINSHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"SAMTOOLSHOME")
 						SAMTOOLSHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
@@ -512,8 +512,8 @@ function fastaunlockFunction {
 
 function readstoFastqFunction {
 		if [ "$READS" == "paired" ]; then
-			PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}')
-			PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}')
+			PAIREND1=$(echo "$IRFILE" |awk -F"," '{print $1}')
+			PAIREND2=$(echo "$IRFILE" |awk -F"," '{print $2}')
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
@@ -826,7 +826,6 @@ function taxatorFunction {
 
 			        cd ..
 					cd ..
-					
 				else
 					echo "$PAIREND2 no exist"
 					exit
@@ -836,7 +835,7 @@ function taxatorFunction {
 				exit
 			fi
 		else
-			SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+			SINGLE=$(echo "$IRFILE" |rev |cut -d "/" -f 1 |rev)
 
 			if mkdir $TMPNAME/taxator_$SINGLE 1>/dev/null; then #we make new folder because is easier to clean after execution
 				echo "folder taxator_$SINGLE created"
@@ -866,12 +865,14 @@ function taxatorFunction {
 function centrifugeFunction {
 
 		echo "Wake up centrifuge"
+		readstoFastqFunction "Centrifuge"
+
 		if [ "$READS" == "paired" ]; then
-			PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}')
-			PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}')
+			PAIREND1=$(echo "$RFILE" |awk -F"," '{print $1}')
+			PAIREND2=$(echo "$RFILE" |awk -F"," '{print $2}')
 			#next, check the files (tolerance to missing files)
-			if [ -f "$PAIREND1" ];then
-				if [ -f "$PAIREND2" ];then
+			if [ -f "$TMPNAME/$PAIREND1" ];then
+				if [ -f "$TMPNAME/$PAIREND2" ];then
 					
 					P1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
 					P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
@@ -888,7 +889,7 @@ function centrifugeFunction {
 					cd centrifuge_$P1.$P2
 					
 					coresControlFunction $CORES "Centrifuge F1"
-					{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
+					{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 ../$PAIREND1 -2 ../$PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -908,7 +909,7 @@ function centrifugeFunction {
 				exit
 			fi
 		else
-			SINGLE=$(echo "$IRFILE" |rev |cut -d "/" -f 1 |rev)
+			SINGLE=$(echo "$RFILE" |rev |cut -d "/" -f 1 |rev)
 
 			if mkdir $TMPNAME/centrifuge_$SINGLE 1>/dev/null; then #we make new folder because is easier to clean after execution
 				echo "folder centrifuge_$SINGLE created"
@@ -1202,7 +1203,7 @@ function lastStepFunction {
 
 
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
-			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort |uniq -c > $P1.$P2.kraken.tmp
+			awk '{print $2}' kraken_trans_$P1.$P2.kraken |sort -T . |uniq -c > $P1.$P2.kraken.tmp
 			rm -f kraken_trans_$P1.$P2.kraken
 			mv $P1.$P2.kraken.tmp kraken_$P1.$P2.kraken
 		else
@@ -1210,7 +1211,7 @@ function lastStepFunction {
 			mv $TMPNAME/TimeKRf2_$SINGLE .
 
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
-			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort |uniq -c > $SINGLE.kraken.tmp
+			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort -T . |uniq -c > $SINGLE.kraken.tmp
 			rm kraken_trans_$SINGLE.kraken
 			mv $SINGLE.kraken.tmp kraken_$SINGLE.kraken
 		fi
@@ -1452,7 +1453,7 @@ function criticalvariablesFunction {
 				cd $INITIALPATH
 			else
 				echo "$DBCF file have at least three .cf files"
-				pass=$((pass+1))				
+				pass=$((pass+1))	
 			fi
 		fi
 	fi
