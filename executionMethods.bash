@@ -743,14 +743,14 @@ function krakenFunction {
 	echo "Wake up kraken"
 	cd $TMPNAME
 	if [ "$READS" == "paired" ]; then
-		PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$1}'`
-		PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$2}'`
+		PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$1}')
+		PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$2}')
 		#next, check the files (tolerance to missing files)
 		if [ -f "$PAIREND1" ];then
 			if [ -f "$PAIREND2" ];then
 					
-				P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-				P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+				P1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+				P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
 								
 				coresControlFunction 1 "Kraken F1"
 				{ time -p ${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$P1.$P2 &
@@ -770,7 +770,7 @@ function krakenFunction {
 		fi
 	else
 		coresControlFunction 1 "Kraken F1"
-		SINGLE=`echo "$IRFILE" |rev |cut -d "/" -f 1 |rev`
+		SINGLE=$(echo "$IRFILE" |rev |cut -d "/" -f 1 |rev)
 		{ time -p ${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$SINGLE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
@@ -1141,24 +1141,24 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
-		newpatname=`echo "TimePSf1_$RFILE" |awk -F "," '{print $1"."$2}'`
+		newpatname=$(echo "TimePSf1_$RFILE" |awk -F "," '{print $1"."$2}')
 		cp $TMPNAME/TimePSf1_$RFILE $newpatname && rm -f $TMPNAME/TimePSf1_$RFILE
-		newpatname=`echo "TimePSf2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		newpatname=$(echo "TimePSf2_$RFILE" |awk -F "," '{print $1"."$2}')
 		cp $TMPNAME/TimePSf2_$RFILE $newpatname && rm -f $TMPNAME/TimePSf2_$RFILE
 
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
-		newpatname=`echo "pathoscope_$RFILE.sam-sam-report.tsv" |awk -F "," '{print $1"."$2}'`
+		newpatname=$(echo "pathoscope_$RFILE.sam-sam-report.tsv" |awk -F "," '{print $1"."$2}')
 		mv pathoscope_$RFILE.sam-sam-report.tsv $newpatname
 
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		newmetname=`echo "TimeM2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		newmetname=$(echo "TimeM2_$RFILE" |awk -F "," '{print $1"."$2}')
 		cp $TMPNAME/TimeM2_$RFILE $newmetname && rm -f $TMPNAME/TimeM2_$RFILE
 		
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
-		newmetname=`echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}'`
+		newmetname=$(echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}')
 		cp metaphlan_$RFILE.dat $newmetname && rm -f metaphlan_$RFILE.dat
 	fi
 	
@@ -1175,19 +1175,19 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		newsigname=`echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}'`
+		newsigname=$(echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}')
 		cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
-		newsigname=`echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}'`
+		newsigname=$(echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}')
 		cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
 
 		cp $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
-		newsigname=`echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}'`
+		newsigname=$(echo "$SGTOCLEAN.gvector.txt" |awk -F "," '{print $1"."$2}')
 		mv $SGTOCLEAN.gvector.txt $newsigname
 	fi
 
 	if [[ "$METHOD" =~ "CONSTRAINS" ]] && [ "$CSERROR" -eq 0 ]; then
-		newsigname=`echo "TimeCS_$RFILE" |awk -F "," '{print $1"."$2}'`		
+		newsigname=$(echo "TimeCS_$RFILE" |awk -F "," '{print $1"."$2}')
 		cp $TMPNAME/TimeCS_$RFILE $newsigname && rm -f $TMPNAME/TimeCS_$RFILE
 		cp $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
