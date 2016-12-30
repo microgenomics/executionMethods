@@ -207,8 +207,6 @@ do
 				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
 				PSIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
 				cd $PSIXDIR
-				#dbpath=`pwd`
-				#DBPS=`echo "$dbpath/$DBPS"` #pathoscope use directory and name separately
 				dbpsband=0
 				statusband=$((statusband+1))
 				cd $INITIALPATH
