@@ -793,8 +793,8 @@ function taxatorFunction {
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
 					
-					P1=`echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev`
-					P2=`echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev`
+					P1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+					P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
 					
 					if mkdir $TMPNAME/taxator_$P1.$P2 1>/dev/null; then #we make new folder because is easier to clean after execution
 						echo "folder taxator_$P1.$P2 created"
@@ -958,7 +958,6 @@ function pathoscopeFunction2 {
 
 function metamixFunction2 {
 
-
 	cd $TMPNAME
 
 	coresControlFunction 12 "Metamix F2" #parallel tempering requires 12 cores
@@ -1102,8 +1101,6 @@ function taxatorFunction2 {
 
 
 		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab |${TAXATORHOME}/bin/binner -n "$P1.$P2" > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
-		# ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab > $P1.$P2.gff3
-		# ${TAXATORHOME}/bin/binner -n "$P1.$P2" < $P1.$P2.gff3 > taxator_$P1.$P2.tax &
 
 		lastpid=$!
 		pids[${pindex}]=$lastpid
@@ -1120,7 +1117,6 @@ function taxatorFunction2 {
 		pindex=$((pindex+1))
 		echo "$lastpid $CORES taxatorF2" >> $COORDFOLDER/proccesscontrol
 		coresunlockFunction
-
 
 		cd ..
 	fi
@@ -1469,16 +1465,16 @@ function criticalvariablesFunction {
 function sigmaCfileFunction {
 
 	if [ "$READS" == "paired" ]; then
-		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
-		SIZE=`tail -n1 $F1 |wc |awk '{print $3}'`
-		F1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev`
-		F1=`echo "$F1.fastq"`
-		F2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}' |rev |cut -d "/" -f 1 |rev`
-		F2=`echo "$F2.fastq"`
+		F1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}')
+		SIZE=$(tail -n1 $F1 |wc |awk '{print $3}')
+		F1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}' |rev |cut -d "/" -f 1 |rev)
+		F1=$(echo "$F1.fastq")
+		F2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}' |rev |cut -d "/" -f 1 |rev)
+		F2=$(echo "$F2.fastq")
 		
 		readstoFastqFunction "sigma"
 		cd $TMPNAME	
-		FASTQFOLDER=`pwd`
+		FASTQFOLDER=$(pwd)
 		cd ..
 		RFILE=$(echo "$F1.$F2")
 		#RFILE=`echo "$F1,$F2"`
@@ -1630,7 +1626,6 @@ if [ $((statusband)) -ge 1 ]; then
 	fi
 
 	criticalvariablesFunction
-
 
 			for g in $METHOD
 			do
