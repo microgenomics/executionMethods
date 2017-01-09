@@ -202,10 +202,10 @@ do
 		fi
 		
 		if [ $((dbpsband)) -eq 1 ]; then
-			ok=`ls -1 "$i"* |wc -l |awk '{print $1}'`
+			ok=$(ls -1 "$i"* |wc -l |awk '{print $1}')
 			if [ $((ok)) -ge 1 ]; then
-				DBPS=`echo "$i" |rev |cut -d "/" -f 1 |rev`
-				PSIXDIR=`echo "$i" |rev |cut -d "/" -f 2- |rev`
+				DBPS=$(echo "$i" |rev |cut -d "/" -f 1 |rev)
+				PSIXDIR=$(echo "$i" |rev |cut -d "/" -f 2- |rev)
 				cd $PSIXDIR
 				dbpsband=0
 				statusband=$((statusband+1))
