@@ -512,6 +512,15 @@ function readstoFastqFunction {
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=$(echo "$IRFILE" |awk -F"," '{print $1}')
 			PAIREND2=$(echo "$IRFILE" |awk -F"," '{print $2}')
+			
+			arefastq=$(echo $PAIREND1 |awk -F"." '{print $NF}' )
+			if [ "$arefastq" == "fastq" ] || [ "$arefastq" == "fq" ];then
+				echo "files are in fastq, nice :D"
+				RFILE=$IRFILE
+
+				return
+			fi
+
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
