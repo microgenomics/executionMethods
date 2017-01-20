@@ -189,6 +189,10 @@ do
 			done
 			if [ "$COORDFOLDER" == "" ];then
 				COORDFOLDER=$HOME
+			else
+				cd $COORDFOLDER
+				COORDFOLDER=$(pwd)
+				cd $OLDPWD
 			fi
 			statusband=$((statusband+1))
 			cfileband=0
@@ -517,8 +521,10 @@ function readstoFastqFunction {
 			if [ "$arefastq" == "fastq" ] || [ "$arefastq" == "fq" ];then
 				echo "files are in fastq, nice :D"
 				RFILE=$IRFILE
+				NAMEPAIREND1=$PAIREND1
+				NAMEPAIREND2=$PAIREND2
 
-				return
+				return 0
 			fi
 
 			#next, check the files (tolerance to missing files)
@@ -1463,6 +1469,7 @@ function criticalvariablesFunction {
 
 	if [ $((pass)) -eq 0 ];then
 		echo "* All parameters ok"
+		echo "Launch zone"
 	else
 		exit
 	fi
