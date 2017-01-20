@@ -8,7 +8,6 @@ invalidband=1
 cfileband=0
 statusband=0
 rfileband=0
-dbpsband=0
 dbm2band=0
 dbmxband=0
 mxnamesband=0
@@ -17,7 +16,6 @@ dbmarkerband=0
 sigmacfileband=0
 csfileband=0
 dbsgband=0
-dbkrband=0
 dbtaxatorband=0
 dbrawtaxatorband=0
 taxatortaxband=0
@@ -38,10 +36,6 @@ do
 	;;
 	"--rfile")
 		rfileband=1
-		invalidband=0
-	;;
-	"--dbPS")
-		dbpsband=1
 		invalidband=0
 	;;
 	"--PSfilterdb")
@@ -70,10 +64,6 @@ do
 	;;
 	"--dbSG")
 		dbsgband=1
-		invalidband=0
-	;;
-	"--dbKR")
-		dbkrband=1
 		invalidband=0
 	;;
 	"--dbTX")
@@ -116,7 +106,6 @@ do
 		echo "--MXnames metamix names translation, is a file with format 'ti name'"
 		echo "--dbSG sigma database folder (master directory)"
 		echo "--dbCS constrains database folder"
-		echo "--dbKR kraken database folder"
 		echo "note: you must provide sigma database folder in the sigma config file"
 		printf "\n#########################################################################################"
 		exit
@@ -149,6 +138,12 @@ do
 					"PATHOSCOPEHOME")
 						PATHOSCOPEHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
+					"DBPS")
+						DBPS=$(echo "$parameter" | awk -F"=" '{print $2}')
+					;;
+					"DBPSDIR")
+						DBPSDIR=$(echo "$parameter" | awk -F"=" '{print $2}')
+					;;
 					"SIGMAHOME")
 						SIGMAHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
@@ -169,6 +164,9 @@ do
 					;;
 					"KRAKENHOME")
 						KRAKENHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
+					;;
+					"DBKR")
+						DBKR=$(echo "$parameter" | awk -F"=" '{print $2}')
 					;;
 					"TAXATORHOME")
 						TAXATORHOME=$(echo "$parameter" | awk -F"=" '{print $2}')
@@ -203,22 +201,6 @@ do
 			IRFILE=$i
 			rfileband=0
 			READS=$(echo "$i" |awk 'BEGIN{FS=","}{if($2 == ""){print "single"}else{print "paired"}}')
-		fi
-		
-		if [ $((dbpsband)) -eq 1 ]; then
-			ok=$(ls -1 "$i"* |wc -l |awk '{print $1}')
-			if [ $((ok)) -ge 1 ]; then
-				DBPS=$(echo "$i" |rev |cut -d "/" -f 1 |rev)
-				PSIXDIR=$(echo "$i" |rev |cut -d "/" -f 2- |rev)
-				cd $PSIXDIR
-				dbpsband=0
-				statusband=$((statusband+1))
-				cd $INITIALPATH
-
-			else
-					echo "$i file no exist"
-					exit
-			fi
 		fi
 		
 		if [ $((dbm2band)) -eq 1 ]; then
@@ -350,18 +332,6 @@ do
 				csfileband=1
 				cd $INITIALPATH
 
-			else
-				echo "$i file no exist"
-				exit
-			fi
-		fi
-
-		if [ $((dbkrband)) -eq 1 ]; then
-			dbkrband=0
-			if [ -d $i ]; then
-				cd $i
-				DBKR=`pwd`
-				cd $INITIALPATH
 			else
 				echo "$i file no exist"
 				exit
@@ -515,14 +485,25 @@ function fastaunlockFunction {
 function readstoFastqFunction {
 		if [ "$READS" == "paired" ]; then
 			PAIREND1=$(echo "$IRFILE" |awk -F"," '{print $1}')
-			PAIREND2=$(echo "$IRFILE" |awk -F"," '{print $2}')
+			NAMEP=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+			DIRP=$(echo "$PAIREND1" |rev |cut -d "/" -f 2- |rev)
+			cd $DIRP
+			PAIREND1=$(pwd |awk -v name=$NAMEP '{print $1"/"name}')
+			cd $OLDPWD
 			
+			PAIREND2=$(echo "$IRFILE" |awk -F"," '{print $2}')
+			NAMEP=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
+			DIRP=$(echo "$PAIREND2" |rev |cut -d "/" -f 2- |rev)
+			cd $DIRP
+			PAIREND2=$(pwd |awk -v name=$NAMEP '{print $1"/"name}')
+			cd $OLDPWD
+
 			arefastq=$(echo $PAIREND1 |awk -F"." '{print $NF}' )
 			if [ "$arefastq" == "fastq" ] || [ "$arefastq" == "fq" ];then
 				echo "files are in fastq, nice :D"
 				RFILE=$IRFILE
-				NAMEPAIREND1=$PAIREND1
-				NAMEPAIREND2=$PAIREND2
+				NAMEPAIREND1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+				NAMEPAIREND2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
 
 				return 0
 			fi
@@ -581,13 +562,15 @@ function pathoscopeFunction {
 
 
 		if [ "$PSFDB" == "" ];then
-			{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
+		#	pwd
+		#${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -1 $PAIREND1 -2 $PAIREND2 -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS
+			{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 &
 			lastpid=$!
-			SAMFILE=pathoscope_$RFILE.sam
+			SAMFILE=pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam
 		else
-			{ time ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $PSIXDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$RFILE.sam  -expTag MAPPED_$RFILE -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$RFILE &
+			{ time ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -filterIndexPrefixes $PSFDB -outDir . -outAlign pathoscope_$NAMEPAIREND1.NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.NAMEPAIREND2 -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 &
 			lastpid=$!
-			SAMFILE=pathoscope_$RFILE.sam
+			SAMFILE=pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam
 		fi
 		lastpid=$!
 		pids[${pindex}]=$lastpid
@@ -615,7 +598,7 @@ function metaphlanFunction {
 			rm -f bowtieout$RFILE.bz2
 		fi
 
-		{ time -p ${PYTHONBIN} ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$RFILE.bz2 --nproc $CORES > ../metaphlan_$RFILE.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$RFILE &
+		{ time -p ${PYTHONBIN} ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$NAMEPAIREND1.$NAMEPAIREND2.bz2 --nproc $CORES > ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$NAMEPAIREND1.$NAMEPAIREND2 &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -633,8 +616,8 @@ function metamixFunction {
 
 		echo "Wake up metamix"
 		if [ "$READS" == "paired" ]; then
-			PAIREND1=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}'`
-			PAIREND2=`echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $1}')
+			PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print $2}')
 			#next, check the files (tolerance to missing files)
 			if [ -f "$PAIREND1" ];then
 				if [ -f "$PAIREND2" ];then
@@ -654,7 +637,7 @@ function metamixFunction {
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1 "Metamix F1_1"
-					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P1 &
+					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -663,7 +646,7 @@ function metamixFunction {
 
 
 					coresControlFunction 1 "Metamix F1_2"
-					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
+					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -738,7 +721,7 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$RFILE &
+	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$NAMEPAIREND1.$NAMEPAIREND2 &
 	# ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
 
 	lastpid=$!
@@ -821,7 +804,7 @@ function taxatorFunction {
 					cd taxator_$P1.$P2
 					
 					coresControlFunction 1 "Taxator F1_1"
-					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P1 &
+					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -830,7 +813,7 @@ function taxatorFunction {
 
 
 					coresControlFunction 1 "Taxator F1_2"
-					{ time -p ${BLASTHOME}/bin/blastn -query ../../$PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P2 &
+					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -881,46 +864,34 @@ function centrifugeFunction {
 		readstoFastqFunction "Centrifuge"
 
 		if [ "$READS" == "paired" ]; then
-			PAIREND1=$(echo "$RFILE" |awk -F"," '{print $1}')
-			PAIREND2=$(echo "$RFILE" |awk -F"," '{print $2}')
-			#next, check the files (tolerance to missing files)
-			if [ -f "$TMPNAME/$PAIREND1" ];then
-				if [ -f "$TMPNAME/$PAIREND2" ];then
 					
-					P1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
-					P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
-					
-					if mkdir $TMPNAME/centrifuge_$P1.$P2 1>/dev/null; then #we make new folder because is easier to clean after execution
-						echo "folder centrifuge_$P1.$P2 created"
-					else
-						echo "Centrifuge: cleaning previous run"
-						rm -r $TMPNAME/centrifuge_$P1.$P2
-						mkdir $TMPNAME/centrifuge_$P1.$P2
-					fi
-
-					cd $TMPNAME
-					cd centrifuge_$P1.$P2
-					
-					coresControlFunction $CORES "Centrifuge F1"
-					{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 ../$PAIREND1 -2 ../$PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
-					lastpid=$!
-					pids[${pindex}]=$lastpid
-					pindex=$((pindex+1))
-					echo "$lastpid $CORES centrifugeF1" >> $COORDFOLDER/proccesscontrol
-
-					coresunlockFunction
-
-			        cd ..
-					cd ..
-					
-				else
-					echo "$PAIREND2 no exist"
-					exit
-				fi
+			P1=$(echo "$PAIREND1" |rev |cut -d "/" -f 1 |rev)
+			P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
+			
+			if mkdir $TMPNAME/centrifuge_$P1.$P2 1>/dev/null; then #we make new folder because is easier to clean after execution
+				echo "folder centrifuge_$P1.$P2 created"
 			else
-				echo "$PAIREND1 no exist"
-				exit
+				echo "Centrifuge: cleaning previous run"
+				rm -r $TMPNAME/centrifuge_$P1.$P2
+				mkdir $TMPNAME/centrifuge_$P1.$P2
 			fi
+
+			cd $TMPNAME
+			cd centrifuge_$P1.$P2
+			
+			coresControlFunction $CORES "Centrifuge F1"
+			#${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv
+			{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
+			lastpid=$!
+			pids[${pindex}]=$lastpid
+			pindex=$((pindex+1))
+			echo "$lastpid $CORES centrifugeF1" >> $COORDFOLDER/proccesscontrol
+
+			coresunlockFunction
+
+			cd ..
+			cd ..
+					
 		else
 			SINGLE=$(echo "$RFILE" |rev |cut -d "/" -f 1 |rev)
 
@@ -933,11 +904,11 @@ function centrifugeFunction {
 			fi
 
 			cd $TMPNAME
-			cd taxator_$SINGLE
+			cd centrifuge_$SINGLE
 
 			coresControlFunction $CORES "Centrifuge F1"
 
-			{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF $SINGLE > centrifuge_$SINGLE.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$SINGLE &
+			{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF ../../$SINGLE > centrifuge_$SINGLE.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -955,10 +926,10 @@ function pathoscopeFunction2 {
 
 	coresControlFunction 1 "Pathoscope2 F2"
 	if [ "$PRIOR" == "" ];then
-		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
+		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 &
 
 	else
-		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$RFILE &
+		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 &
 	fi
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -1041,24 +1012,24 @@ function constrainsFunction {
 
 	cd $TMPNAME
 	coresControlFunction $CORES "Constrains F2"
-	if [ -f "../metaphlan_$RFILE.dat" ];then
+	if [ -f "../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat" ];then
 		CSERROR=0
-		CSTOCLEAN=`echo "$RFILE" |awk 'BEGIN{FS=","}{print "constrains_"$1"."$2}'`
+		CSTOCLEAN=$(echo "$NAMEPAIREND1.$NAMEPAIREND2" |awk '{print "constrains_"$1}')
 
 		if [ "$READS" == "paired" ]; then
-			F1=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}'`
-			F2=`echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}'`
+			F1=$(echo "$RFILE" |awk 'BEGIN{FS=","}{print $1}')
+			F2=$(echo "$RFILE" |awk 'BEGIN{FS=","}{print $2}')
 			echo "sample: $RFILE
 			fq1: $F1
 			fq2: $F2
-			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
+			metaphlan: ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat" > cs_config_$NAMEPAIREND1.$NAMEPAIREND2.conf
 		else
 			echo "sample: $RFILE 
 			fq: $RFILE
-			metaphlan: ../metaphlan_$RFILE.dat" > cs_config_$RFILE.conf
-			CSTOCLEAN=constrains_$RFILE
+			metaphlan: ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat" > cs_config_$NAMEPAIREND1.$NAMEPAIREND2.conf
+			CSTOCLEAN=constrains_$NAMEPAIREND1.$NAMEPAIREND2
 		fi
-			{ time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$RFILE &
+			{ time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$NAMEPAIREND1.$NAMEPAIREND2.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$NAMEPAIREND1.$NAMEPAIREND2 &
 			# ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
@@ -1110,7 +1081,7 @@ function taxatorFunction2 {
 		rm blastOut$P1.tab blastOut$P2.tab
 
 		awk '{print $0"\t"}' blastOut$P1.$P2.tab >  blastOut$P1.$P2.tab.tmp && rm -f blastOut$P1.$P2.tab && mv blastOut$P1.$P2.tab.tmp blastOut$P1.$P2.tab
-		cat ../../$PAIREND1 ../../$PAIREND2 > $P1.$P2
+		cat $PAIREND1 $PAIREND2 > $P1.$P2
 
 
 		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab |${TAXATORHOME}/bin/binner -n "$P1.$P2" > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
@@ -1150,20 +1121,18 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
-		newpatname=$(echo "TimePSf1_$RFILE" |awk -F "," '{print $1"."$2}')
-		cp $TMPNAME/TimePSf1_$RFILE $newpatname && rm -f $TMPNAME/TimePSf1_$RFILE
-		newpatname=$(echo "TimePSf2_$RFILE" |awk -F "," '{print $1"."$2}')
-		cp $TMPNAME/TimePSf2_$RFILE $newpatname && rm -f $TMPNAME/TimePSf2_$RFILE
+		cp $TMPNAME/TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 . && rm -f $TMPNAME/TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2
+		cp $TMPNAME/TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 . && rm -f $TMPNAME/TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2
 
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
-		newpatname=$(echo "pathoscope_$RFILE.sam-sam-report.tsv" |awk -F "," '{print $1"."$2}')
-		mv pathoscope_$RFILE.sam-sam-report.tsv $newpatname
+		#newpatname=$(echo "pathoscope_$RFILE.sam-sam-report.tsv")
+		#mv pathoscope_$RFILE.sam-sam-report.tsv $newpatname
 
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		newmetname=$(echo "TimeM2_$RFILE" |awk -F "," '{print $1"."$2}')
+		newmetname=$(echo "TimeM2_$NAMEPAIREND1.$NAMEPAIREND2")
 		cp $TMPNAME/TimeM2_$RFILE $newmetname && rm -f $TMPNAME/TimeM2_$RFILE
 		
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
@@ -1244,11 +1213,11 @@ function lastStepFunction {
 	if [[ "$METHOD" =~ "CENTRIFUGE" ]]; then
 		if [ "$READS" == "paired" ]; then
 			cp $TMPNAME/TimeCF_$P1.$P2 . && rm -f $TMPNAME/TimeCF_$P1.$P2
-			cp $TMPNAME/centrifuge_$P1.$P2/centrifuge_report.tsv centrifuge_$P1.$P2.tsv
+			cp $TMPNAME/centrifuge_$P1.$P2/centrifuge_$P1.$P2.tsv .
 			rm -rf $TMPNAME/centrifuge_$P1.$P2
 		else
 			cp $TMPNAME/TimeCF_$SINGLE .
-			cp $TMPNAME/centrifuge_$SINGLE/centrifuge_report.tsv centrifuge_$SINGLE.tsv
+			cp $TMPNAME/centrifuge_$SINGLE/centrifuge_$SINGLE.tsv .
 			rm -rf $TMPNAME/taxator_$SINGLE
 		fi
 	fi
@@ -1280,8 +1249,8 @@ function criticalvariablesFunction {
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
 
-		if [ "$DBPS" == "" ];then
-			echo "* You must provide a database (bowtie2 index), for pathoscope (--dbPS)"
+		if [ "$DBPS" == "" ] || [ "DBPSDIR" == "" ];then
+			echo "* You must provide a database (bowtie2 index), for pathoscope in config file (DBPS and DBPSDIR)"
 			pass=$((pass+1))
 		fi
 		if [ "$PATHOSCOPEHOME" == "" ];then
@@ -1654,7 +1623,6 @@ if [ $((statusband)) -ge 1 ]; then
 						metamixFunction	
 					;;
 					"SIGMA")
-					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory)
 						sigmaFunction
 					;;
 					"CONSTRAINS")
@@ -1699,7 +1667,6 @@ if [ $((statusband)) -ge 1 ]; then
 						metamixFunction2
 					;;
 					"SIGMA")
-					#REMEMBER HAVE DATABASE IN SIGMA FORMAT (each fasta in each directory, and each name folder must be the gi number of fasta that contain)
 						sigmaFunction2
 					;;
 					"CONSTRAINS")
@@ -1722,6 +1689,7 @@ if [ $((statusband)) -ge 1 ]; then
 			   wait $pid
 			done
 			unset pids
+			
 			lastStepFunction
 else
 	echo "Invalid or Missing Parameters, print --help to see the options"
