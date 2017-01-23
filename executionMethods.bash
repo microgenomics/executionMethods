@@ -1130,8 +1130,8 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "PATHOSCOPE" ]]; then
-		cp $TMPNAME/TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 . && rm -f $TMPNAME/TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2
-		cp $TMPNAME/TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 . && rm -f $TMPNAME/TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2
+	#	cp $TMPNAME/TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 . && rm -f $TMPNAME/TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2
+	#	cp $TMPNAME/TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 . && rm -f $TMPNAME/TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2
 
 		rm -f updated_pathoscope_$TOCLEAN.sam
 		rm -f $TMPNAME/$SAMFILE
@@ -1141,8 +1141,8 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "METAPHLAN" ]]; then
-		newmetname=$(echo "TimeM2_$NAMEPAIREND1.$NAMEPAIREND2")
-		cp $TMPNAME/TimeM2_$RFILE $newmetname && rm -f $TMPNAME/TimeM2_$RFILE
+	#	newmetname=$(echo "TimeM2_$NAMEPAIREND1.$NAMEPAIREND2")
+	#	cp $TMPNAME/TimeM2_$RFILE $newmetname && rm -f $TMPNAME/TimeM2_$RFILE
 		
 		rm -f $TMPNAME/bowtieout$TOCLEAN.bz2
 		newmetname=$(echo "metaphlan_$RFILE.dat" |awk -F "," '{print $1"."$2}')
@@ -1151,8 +1151,8 @@ function lastStepFunction {
 	
 	if [[ "$METHOD" =~ "METAMIX" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cp $TMPNAME/TimeMXf1_$P1.$P2 . && rm -f $TMPNAME/TimeMXf1_$P1.$P2
-			cp $TMPNAME/TimeMXf2_$P1.$P2 . && rm -f $TMPNAME/TimeMXf2_$P1.$P2
+	#		cp $TMPNAME/TimeMXf1_$P1.$P2 . && rm -f $TMPNAME/TimeMXf1_$P1.$P2
+	#		cp $TMPNAME/TimeMXf2_$P1.$P2 . && rm -f $TMPNAME/TimeMXf2_$P1.$P2
 			rm -rf $TMPNAME/metamix_$P1.$P2
 		else
 			mv $TMPNAME/TimeMXf1_$SINGLE .
@@ -1162,10 +1162,10 @@ function lastStepFunction {
 	fi
 	
 	if [[ "$METHOD" =~ "SIGMA" ]]; then
-		newsigname=$(echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}')
-		cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
-		newsigname=$(echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}')
-		cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
+	#	newsigname=$(echo "TimeSGf1_$RFILE" |awk -F "," '{print $1"."$2}')
+	#	cp $TMPNAME/$SGTOCLEAN/TimeSGf1_$RFILE $newsigname
+	#	newsigname=$(echo "TimeSGf2_$RFILE" |awk -F "," '{print $1"."$2}')
+	#	cp $TMPNAME/$SGTOCLEAN/TimeSGf2_$RFILE $newsigname
 
 		cp $TMPNAME/$SGTOCLEAN/*.gvector.txt $SGTOCLEAN.gvector.txt
 		rm -rf $TMPNAME/$SGTOCLEAN
@@ -1174,8 +1174,8 @@ function lastStepFunction {
 	fi
 
 	if [[ "$METHOD" =~ "CONSTRAINS" ]] && [ "$CSERROR" -eq 0 ]; then
-		newsigname=$(echo "TimeCS_$RFILE" |awk -F "," '{print $1"."$2}')
-		cp $TMPNAME/TimeCS_$RFILE $newsigname && rm -f $TMPNAME/TimeCS_$RFILE
+	#	newsigname=$(echo "TimeCS_$RFILE" |awk -F "," '{print $1"."$2}')
+	#	cp $TMPNAME/TimeCS_$RFILE $newsigname && rm -f $TMPNAME/TimeCS_$RFILE
 		cp $TMPNAME/$CSTOCLEAN/results/Overall_rel_ab.profiles $CSTOCLEAN.profiles
 		rm -rf $TMPNAME/$CSTOCLEAN
 		rm -rf $TMPNAME/cs_config_$RFILE.conf
@@ -1184,9 +1184,9 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "KRAKEN" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cp $TMPNAME/TimeKRf1_$P1.$P2 .
-			cp $TMPNAME/TimeKRf2_$P1.$P2 .
-			rm -f $TMPNAME/TimeKRf1_$P1.$P2 $TMPNAME/TimeKRf2_$P1.$P2
+		#	cp $TMPNAME/TimeKRf1_$P1.$P2 .
+		#	cp $TMPNAME/TimeKRf2_$P1.$P2 .
+		#	rm -f $TMPNAME/TimeKRf1_$P1.$P2 $TMPNAME/TimeKRf2_$P1.$P2
 
 
 			mv $TMPNAME/kraken_trans_$P1.$P2.kraken .
@@ -1194,8 +1194,8 @@ function lastStepFunction {
 			rm -f kraken_trans_$P1.$P2.kraken
 			mv $P1.$P2.kraken.tmp kraken_$P1.$P2.kraken
 		else
-			mv $TMPNAME/TimeKRf1_$SINGLE .
-			mv $TMPNAME/TimeKRf2_$SINGLE .
+		#	mv $TMPNAME/TimeKRf1_$SINGLE .
+		#	mv $TMPNAME/TimeKRf2_$SINGLE .
 
 			mv $TMPNAME/kraken_trans_$SINGLE.kraken .
 			awk '{print $2}' kraken_trans_$SINGLE.kraken |sort -T . |uniq -c > $SINGLE.kraken.tmp
@@ -1206,14 +1206,14 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "TAXATOR" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cp $TMPNAME/TimeTXf1_$P1.$P2 . && rm -f $TMPNAME/TimeTXf1_$P1.$P2
-			cp $TMPNAME/TimeTXf2_$P1.$P2 . && rm -f $TMPNAME/TimeTXf2_$P1.$P2
+		#	cp $TMPNAME/TimeTXf1_$P1.$P2 . && rm -f $TMPNAME/TimeTXf1_$P1.$P2
+		#	cp $TMPNAME/TimeTXf2_$P1.$P2 . && rm -f $TMPNAME/TimeTXf2_$P1.$P2
 			cp $TMPNAME/taxator_$P1.$P2/taxator_$P1.$P2.tax .
 			rm -rf $TMPNAME/taxator_$P1.$P2
 
 		else
-			cp $TMPNAME/TimeTXf1_$SINGLE .
-			cp $TMPNAME/TimeTXf2_$SINGLE .
+		#	cp $TMPNAME/TimeTXf1_$SINGLE .
+		#	cp $TMPNAME/TimeTXf2_$SINGLE .
 			cp $TMPNAME/taxator_$SINGLE/taxator_$SINGLE.tax .
 			rm -rf $TMPNAME/taxator_$SINGLE
 		fi
@@ -1221,11 +1221,11 @@ function lastStepFunction {
 
 	if [[ "$METHOD" =~ "CENTRIFUGE" ]]; then
 		if [ "$READS" == "paired" ]; then
-			cp $TMPNAME/TimeCF_$P1.$P2 . && rm -f $TMPNAME/TimeCF_$P1.$P2
+		#	cp $TMPNAME/TimeCF_$P1.$P2 . && rm -f $TMPNAME/TimeCF_$P1.$P2
 			cp $TMPNAME/centrifuge_$P1.$P2/centrifuge_$P1.$P2.tsv .
 			rm -rf $TMPNAME/centrifuge_$P1.$P2
 		else
-			cp $TMPNAME/TimeCF_$SINGLE .
+		#	cp $TMPNAME/TimeCF_$SINGLE .
 			cp $TMPNAME/centrifuge_$SINGLE/centrifuge_$SINGLE.tsv .
 			rm -rf $TMPNAME/taxator_$SINGLE
 		fi
