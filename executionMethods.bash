@@ -459,7 +459,6 @@ function coresControlFunction {
 		sleep 60
 		coresControlFunction $request
 	fi
-
 }
 
 function coresunlockFunction {
@@ -562,9 +561,8 @@ function pathoscopeFunction {
 
 
 		if [ "$PSFDB" == "" ];then
-		#	pwd
-		#${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -1 $PAIREND1 -2 $PAIREND2 -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS
-			{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 &
+		${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -1 $PAIREND1 -2 $PAIREND2 -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS
+		#	{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 &
 			lastpid=$!
 			SAMFILE=pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam
 		else
@@ -582,7 +580,6 @@ function pathoscopeFunction {
 		
 		TOCLEAN=$RFILE
 		IRFILE=$FILE
-
 }
 
 function metaphlanFunction {
@@ -597,8 +594,10 @@ function metaphlanFunction {
 		if [ -f "bowtieout$RFILE.bz2" ];then
 			rm -f bowtieout$RFILE.bz2
 		fi
-
-		{ time -p ${PYTHONBIN} ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$NAMEPAIREND1.$NAMEPAIREND2.bz2 --nproc $CORES > ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$NAMEPAIREND1.$NAMEPAIREND2 &
+		
+		${PYTHONBIN} ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$NAMEPAIREND1.$NAMEPAIREND2.bz2 --nproc $CORES > ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat
+	
+	#	{ time -p ${PYTHONBIN} ${METAPHLAN2HOME}/metaphlan2.py $RFILE --input_type fastq --mpa_pkl $DBMARKER --bowtie2db $DBM2 --bowtie2out bowtieout$NAMEPAIREND1.$NAMEPAIREND2.bz2 --nproc $CORES > ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat ; } 2>&1 |grep "real" |awk '{print $2}' > TimeM2_$NAMEPAIREND1.$NAMEPAIREND2 &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -609,7 +608,6 @@ function metaphlanFunction {
 
 		TOCLEAN=$RFILE
 		IRFILE=$FILE
-
 }
 
 function metamixFunction {
@@ -637,7 +635,8 @@ function metamixFunction {
 					cd metamix_$P1.$P2
 					
 					coresControlFunction 1 "Metamix F1_1"
-					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P1 &
+					${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab
+				#	{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -646,7 +645,8 @@ function metamixFunction {
 
 
 					coresControlFunction 1 "Metamix F1_2"
-					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
+					${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab
+				#	{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -680,7 +680,8 @@ function metamixFunction {
 
 			coresControlFunction 1 "Metamix F1"
 
-			{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
+			${BLASTHOME}/bin/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$SINGLE.tab
+		#	{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt "6 qacc qlen sseqid slen mismatch bitscore length pident evalue staxids" -db $DBMX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -689,7 +690,6 @@ function metamixFunction {
 			cd ..
 			cd ..
 		fi
-	
 }
 
 function sigmaFunction { 
@@ -721,8 +721,8 @@ function sigmaFunction {
 		fi
 	fi
 	mv ../$SIGMACFILE .
-	{ time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$NAMEPAIREND1.$NAMEPAIREND2 &
-	# ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
+	# { time -p ${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf1_$NAMEPAIREND1.$NAMEPAIREND2 &
+	${SIGMAHOME}/bin/sigma-align-reads -c $SIGMACFILE -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -731,7 +731,6 @@ function sigmaFunction {
 	coresunlockFunction
 	cd ..
 	cd ..
-
 }
 
 function krakenFunction {
@@ -739,8 +738,8 @@ function krakenFunction {
 	echo "Wake up kraken"
 	cd $TMPNAME
 	if [ "$READS" == "paired" ]; then
-		PAIREND1=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$1}')
-		PAIREND2=$(echo "$IRFILE" |awk 'BEGIN{FS=","}{print "../"$2}')
+		PAIREND1=$(echo "$IRFILE" |awk -F"," '{print "../"$1}')
+		PAIREND2=$(echo "$IRFILE" |awk -F"," '{print "../"$2}')
 		#next, check the files (tolerance to missing files)
 		if [ -f "$PAIREND1" ];then
 			if [ -f "$PAIREND2" ];then
@@ -749,7 +748,8 @@ function krakenFunction {
 				P2=$(echo "$PAIREND2" |rev |cut -d "/" -f 1 |rev)
 								
 				coresControlFunction 1 "Kraken F1"
-				{ time -p ${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$P1.$P2 &
+				${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken
+			#	{ time -p ${KRAKENHOME}/kraken --db $DBKR --paired $PAIREND1 $PAIREND2 --threads $THREADS --preload > kraken_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$P1.$P2 &
 				lastpid=$!
 				pids[${pindex}]=$lastpid
 				pindex=$((pindex+1))
@@ -767,7 +767,8 @@ function krakenFunction {
 	else
 		coresControlFunction 1 "Kraken F1"
 		SINGLE=$(echo "$IRFILE" |rev |cut -d "/" -f 1 |rev)
-		{ time -p ${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$SINGLE &
+		${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken
+	#	{ time -p ${KRAKENHOME}/kraken --db $DBKR ../$IRFILE --threads $THREADS --preload > kraken_$SINGLE.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf1_$SINGLE &
 		lastpid=$!
 		pids[${pindex}]=$lastpid
 		pindex=$((pindex+1))
@@ -804,7 +805,8 @@ function taxatorFunction {
 					cd taxator_$P1.$P2
 					
 					coresControlFunction 1 "Taxator F1_1"
-					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P1 &
+					${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab
+				#	{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND1 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P1.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P1 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -813,7 +815,8 @@ function taxatorFunction {
 
 
 					coresControlFunction 1 "Taxator F1_2"
-					{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P2 &
+					${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab
+				#	{ time -p ${BLASTHOME}/bin/blastn -query $PAIREND2 -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$P2.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf1_$P2 &
 					lastpid=$!
 					pids[${pindex}]=$lastpid
 					pindex=$((pindex+1))
@@ -845,8 +848,8 @@ function taxatorFunction {
 			cd taxator_$SINGLE
 
 			coresControlFunction $CORES "Taxator F1"
-
-			{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
+			${BLASTHOME}/bin/blastn -query $IRFILE -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$SINGLE.tab
+		#	{ time -p ${BLASTHOME}/bin/blastn -query $IRFILE -outfmt '6 qseqid qstart qend qlen sseqid sstart send bitscore evalue nident length' -db $DBTX -num_threads $THREADS > blastOut$SINGLE.tab ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf1_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -880,8 +883,8 @@ function centrifugeFunction {
 			cd centrifuge_$P1.$P2
 			
 			coresControlFunction $CORES "Centrifuge F1"
-			#${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv
-			{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
+			${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv
+		#	{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF -1 $PAIREND1 -2 $PAIREND2 > centrifuge_$P1.$P2.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$P1.$P2 &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -907,8 +910,8 @@ function centrifugeFunction {
 			cd centrifuge_$SINGLE
 
 			coresControlFunction $CORES "Centrifuge F1"
-
-			{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF ../../$SINGLE > centrifuge_$SINGLE.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$SINGLE &
+			${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF ../../$SINGLE > centrifuge_$SINGLE.tsv
+		#	{ time -p ${CENTRIFUGEHOME}/bin/centrifuge -p $CORES -x $DBCF ../../$SINGLE > centrifuge_$SINGLE.tsv ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeCF_$SINGLE &
 			lastpid=$!
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -926,10 +929,12 @@ function pathoscopeFunction2 {
 
 	coresControlFunction 1 "Pathoscope2 F2"
 	if [ "$PRIOR" == "" ];then
-		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 &
+		${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE
+	#	{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 &
 
 	else
-		{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 &
+		${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR
+	#	{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py ID -alignFile $SAMFILE -fileType sam -outDir ../ -expTag $SAMFILE -thetaPrior $PRIOR 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf2_$NAMEPAIREND1.$NAMEPAIREND2 &
 	fi
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -950,14 +955,15 @@ function metamixFunction2 {
 			cat TimeMXf1_$P1 TimeMXf1_$P2 |awk 'BEGIN{sum=0}{sum+=$1}END{print sum}' > TimeMXf1_$P1.$P2
 			rm -f TimeMXf1_$P1 TimeMXf1_$P2
 			cd metamix_$P1.$P2
-			BACKUPNAME=`echo "metamix_$P1.$P2"`
+			BACKUPNAME=$(echo "metamix_$P1.$P2")
 			metamixCodeFunction
 			echo "call to metamix R function"
 			cat blastOut$P1.tab blastOut$P2.tab > blastOut$P1.$P2.tab
 			rm blastOut$P1.tab blastOut$P2.tab
-			executionpath=`pwd`
+			executionpath=$(pwd)
 
-			{ time -p executeMetamix blastOut$P1.$P2.tab $executionpath 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$P1.$P2 &
+			executeMetamix blastOut$P1.$P2.tab $executionpath
+		#	{ time -p executeMetamix blastOut$P1.$P2.tab $executionpath 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$P1.$P2 &
 
 			cd ..
 
@@ -965,9 +971,10 @@ function metamixFunction2 {
 			cd metamix_$SINGLE
 			metamixCodeFunction
 			echo "execute metamix R function"
-			executionpath=`pwd`
-
-			{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
+			executionpath=$(pwd)
+		
+			executeMetamix blastOut$SINGLE.tab $executionpath
+		#	{ time -p executeMetamix blastOut$SINGLE.tab $executionpath 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeMXf2_$SINGLE &
 
 			cd ..
 		fi
@@ -990,8 +997,8 @@ function sigmaFunction2 {
 	coresControlFunction $twoInstances "Sigma F2"
 
 	echo "executing sigma wrapper module"	
-    { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
-	# ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
+    # { time -p ${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w . 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeSGf2_$RFILE &
+	${SIGMAHOME}/bin/sigma -c $SIGMACFILE -t $THREADS -w .
 
 	lastpid=$!
 	pids[${pindex}]=$lastpid
@@ -1029,8 +1036,8 @@ function constrainsFunction {
 			metaphlan: ../metaphlan_$NAMEPAIREND1.$NAMEPAIREND2.dat" > cs_config_$NAMEPAIREND1.$NAMEPAIREND2.conf
 			CSTOCLEAN=constrains_$NAMEPAIREND1.$NAMEPAIREND2
 		fi
-			{ time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$NAMEPAIREND1.$NAMEPAIREND2.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$NAMEPAIREND1.$NAMEPAIREND2 &
-			# ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
+		#	{ time -p ${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$NAMEPAIREND1.$NAMEPAIREND2.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimeCS_$NAMEPAIREND1.$NAMEPAIREND2 &
+			${PYTHONBIN} ${CONSTRAINSHOME}/ConStrains.py -c cs_config_$RFILE.conf -o $CSTOCLEAN -t $THREADS -d ${CONSTRAINSHOME}/db/ref_db -g ${CONSTRAINSHOME}/db/gsize.db --bowtie2=${BOWTIE2HOME}/bin/bowtie2-build --samtools=${SAMTOOLSHOME}/bin/samtools -m ${METAPHLAN2HOME}/metaphlan2.py &
 			lastpid=$!	
 			pids[${pindex}]=$lastpid
 			pindex=$((pindex+1))
@@ -1051,9 +1058,11 @@ function krakenFunction2 {
 	coresControlFunction 1 "Kraken F2"
 
 	if [ "$READS" == "paired" ]; then
-		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$P1.$P2 &
+		${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken
+	#	{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$P1.$P2.kraken > kraken_trans_$P1.$P2.kraken ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$P1.$P2 &
 	else
-		{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken  ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$SINGLE &
+		${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken
+	#	{ time -p ${KRAKENHOME}/kraken-translate --mpa-format --db $DBKR kraken_$SINGLE.kraken > kraken_trans_$SINGLE.kraken  ; } 2>&1 |grep "real" |awk '{print $2}' > TimeKRf2_$SINGLE &
 	fi
 	
 	lastpid=$!
@@ -1083,8 +1092,8 @@ function taxatorFunction2 {
 		awk '{print $0"\t"}' blastOut$P1.$P2.tab >  blastOut$P1.$P2.tab.tmp && rm -f blastOut$P1.$P2.tab && mv blastOut$P1.$P2.tab.tmp blastOut$P1.$P2.tab
 		cat $PAIREND1 $PAIREND2 > $P1.$P2
 
-
-		{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab |${TAXATORHOME}/bin/binner -n "$P1.$P2" > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
+		${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab |${TAXATORHOME}/bin/binner -n "$P1.$P2" > taxator_$P1.$P2.tax
+	#	{ time -p ${TAXATORHOME}/bin/taxator -g $TXTAX -q $P1.$P2 -v $P1.$P2.fai -f $DBTXR -i $DBTXR.fai -p16 < blastOut$P1.$P2.tab |${TAXATORHOME}/bin/binner -n "$P1.$P2" > taxator_$P1.$P2.tax ; } 2>&1 |grep "real" |awk '{print $2}' > ../TimeTXf2_$P1.$P2 &
 
 		lastpid=$!
 		pids[${pindex}]=$lastpid
