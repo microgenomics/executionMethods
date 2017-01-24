@@ -561,7 +561,7 @@ function pathoscopeFunction {
 
 
 		if [ "$PSFDB" == "" ];then
-		${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -1 $PAIREND1 -2 $PAIREND2 -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS
+			${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -1 $PAIREND1 -2 $PAIREND2 -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS -btHome $BOWTIE2HOME
 		#	{ time -p ${PYTHONBIN} ${PATHOSCOPEHOME}/pathoscope2.py MAP -U $RFILE -indexDir $DBPSDIR -targetIndexPrefixes $DBPS -outDir . -outAlign pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam  -expTag MAPPED_$NAMEPAIREND1.$NAMEPAIREND2 -numThreads $THREADS 1>/dev/null ; } 2>&1 |grep "real" |awk '{print $2}' > TimePSf1_$NAMEPAIREND1.$NAMEPAIREND2 &
 			lastpid=$!
 			SAMFILE=pathoscope_$NAMEPAIREND1.$NAMEPAIREND2.sam
@@ -1268,6 +1268,10 @@ function criticalvariablesFunction {
 		fi
 		if ! [ -f $PATHOSCOPEHOME/pathoscope2.py ];then
 			echo "* pathoscope2.py no exist in $PATHOSCOPEHOME"
+			pass=$((pass+1))
+		fi
+		if [ "$BOWTIE2HOME" == "" ];then
+			echo "* You must provide a bowtie2 home in config file (BOWTIE2HOME flag in config file)"
 			pass=$((pass+1))
 		fi
 	fi
